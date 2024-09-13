@@ -10,11 +10,12 @@ class MyBugAlgorithm : public amp::BugAlgorithm {
         virtual amp::Path2D plan(const amp::Problem2D& problem) override;
         double sniff(const Eigen::Vector2d& pos, const Eigen::Vector2d& goal);
         double sonar(const Eigen::Vector2d& pos, const Eigen::Vector2d& goal);
-        double crossProduct(const Eigen::Vector2d& a, const Eigen::Vector2d& b); 
+        bool boolCollision(const Eigen::Vector2d& pos, const amp::Problem2D problem);
         bool isPointInPolygon(const Eigen::Vector2d& pos, const std::vector<Eigen::Vector2d>& vertices);
-        Eigen::Vector2d planStep(const Eigen::Vector2d& pos, const Eigen::Vector2d& goal, const double& angle2goal, const amp::Problem2D& problem);
-        int getClosestVertex(const Eigen::Vector2d& pos, const std::vector<Eigen::Vector2d>& vertices);
-        std::vector<Eigen::Vector2d> circumnavigateObstacle(const Eigen::Vector2d& pos, const amp::Polygon& obstacle);
+        bool boolCollision(Eigen::Vector2d& pos, const amp::Problem2D problem);
+        double crossProduct(const Eigen::Vector2d& a, const Eigen::Vector2d& b); 
+        std::vector<Eigen::Vector2d> getCollisionObstacle(Eigen::Vector2d& pos, const amp::Problem2D problem);
+        Eigen::Vector2d parallelVec(const std::vector<Eigen::Vector2d>& vertices, const Eigen::Vector2d& point);
     private:
         // Add any member variables here...
 };
