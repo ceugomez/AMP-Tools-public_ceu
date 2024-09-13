@@ -10,7 +10,7 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
     double angle2goal;          // obvi
     int bugMode = 1;            // 0: pure pursuit; 1: follow obstacle; 2: straight to goal
     int i = 1;                  // iterator, catchall
-    double stepsize = 4;        // how big step size etc 
+    double stepsize = 0.1;        // how big step size etc 
     Eigen::Vector2d closestPoint; // closest point to goal on obstacle
 
     // unpack initial position vector
@@ -19,7 +19,7 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
     path.waypoints.push_back(pos);              // push initial waypoint
     double mlineangle = sniff(pos,goal);        // m-line
     // main planning loop
-    while (!completepath && i < 75) {
+    while (!completepath && i <10000) {
         range2goal = sonar(pos, goal);
         angle2goal = sniff(pos, goal);
         switch (bugMode) {
@@ -28,21 +28,22 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
                     bugMode = 3;                                    // send to goal mode
                     break;
                 } else {                                            // test step along M-line
-                    proposedStep[0] = pos[0] + cos(angle2goal) / 4;
-                    proposedStep[1] = pos[1] + sin(angle2goal) / 4;
+                    proposedStep[0] = pos[0] + cos(angle2goal)*stepsize;
+                    proposedStep[1] = pos[1] + sin(angle2goal) *stepsize;
                     if (!boolCollision(proposedStep, problem)) {     // if M-line step does not collide with obstacle                   
                         path.waypoints.push_back(proposedStep);     // push m-line step
                         pos = proposedStep;                         // set current position to m-line step
                     } else {                                         // else 
-                        bugMode = 2;                                // set to obstacle following mode              
+                        bugMode = 2;                                // set to obstacle following mode   
+                        LOG("Switching bug mode to 2 - detected collision in path ");            
                     }                           
                 }
                 break; 
             }
             case 2: { // follow object - BUG 2
                 // identify object to be stepped over
-                proposedStep[0] = pos[0] + cos(angle2goal) / 4;
-                proposedStep[1] = pos[1] + sin(angle2goal) / 4;
+                proposedStep[0] = pos[0] + cos(angle2goal)*stepsize;
+                proposedStep[1] = pos[1] + sin(angle2goal)*stepsize;
                 // get collision obstacle 
                 std::vector<Eigen::Vector2d> obs = getCollisionObstacle(proposedStep, problem);
                     // move around obstacle 
@@ -53,6 +54,7 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
                         Eigen::Vector2d nextCWVertexPoint;
                         double distMovedAlongEdge = 0;
                         double angle2goalfrompos;
+                        double angle2goalfromstart;
                         double edgeLength;                                 
                         Eigen::Vector2d parallelVector;                    // vector parallel to edge to transit
                         bool breakCircumnavigateLoop = false;              // flag if the bug re-encounters m-line
@@ -62,6 +64,10 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
                         int circumnavigateVectorIDX = 0 ;
                         // circumnavigate obstacle
                         while (verticesTransited<obs.size()&&!breakCircumnavigateLoop){                 // while we have yet to circumnavigate the obstacle and haven't run into another obstacle
+                            if (breakEdgeLoop){     
+                                breakEdgeLoop=false;
+                                currentVertexIdx = getClosestVertex(pos, obs);
+                            }
                             nextCWVertexIdx = (currentVertexIdx + 1)%obs.size();                        // vertex index to move to next, clockwise 
                             currentVertexPoint = obs[currentVertexIdx];                                 // current vertex point
                             nextCWVertexPoint = obs[nextCWVertexIdx];                                   // next vertex point, clockwise
@@ -69,20 +75,26 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
                             edgeLength = (pos-nextCWVertexPoint).norm();                                // distance we need to move along the edge
                             parallelVector = parallelVecPoints(currentVertexPoint, nextCWVertexPoint);  // vector parallel to this edge
                             // move along edge
-                            
+                            //LOG("Running edge of obstacle");
                             while (distMovedAlongEdge<(edgeLength+0.1) && !breakEdgeLoop){                                // while distance we need to move < distance we have moved 
-                                distMovedAlongEdge = distMovedAlongEdge + (parallelVector/6).norm();    // iterate distance moved
-                                pos = pos + parallelVector/6;                                           // shift position
-                                if (!boolCollision(pos, problem)){                                      // if edge-parallel step doesn't intersect obstacle 
-                                    path.waypoints.push_back(pos);                                      // push waypoints
-                                    if (verticesTransited>1 && (abs(abs(mlineangle)-abs(angle2goalfrompos)))<2){
+                                distMovedAlongEdge = distMovedAlongEdge + (parallelVector*stepsize).norm();    // iterate distance moved
+                                Eigen::Vector2d pos_step = pos + parallelVector*stepsize;                                           // shift position
+                                if (!boolCollision(pos_step, problem)){                                      // if edge-parallel step doesn't intersect obstacle 
+                                    path.waypoints.push_back(pos_step);                                      // push waypoints
+                                    i++;
+                                    angle2goalfromstart = sniff(problem.q_init, goal);
+                                    angle2goalfrompos = sniff(pos_step, goal);
+                                    pos = pos_step;
+                                    if ((abs(abs(angle2goalfromstart)-abs(angle2goalfrompos)))<0.005){
                                         breakCircumnavigateLoop=true;
+                                        //LOG("Switching to bug 1 mode");
+                                        LOG("Switching bug mode to 1");
                                         bugMode=1;
                                     }
-                                }else{                                                                  // else if our circumnavigation runs into an obstacle          
+                                }else{                                                                      // else if our circumnavigation runs into an obstacle
+                                    //LOG("Ran into obstacle while circumnavigating");          
                                     obs = getCollisionObstacle(pos, problem);                                      
                                     breakEdgeLoop = true;                                                   // break the loop and try again with next obstacle 
-                                    break;
                                 }
                             }
                             verticesTransited= verticesTransited+1;
@@ -97,6 +109,9 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
             }
         }
         i = i + 1;
+    }
+    if (!(path.waypoints[i] == goal)){
+        path.waypoints.push_back(goal);
     }
     return path;
 }
@@ -183,3 +198,4 @@ bool MyBugAlgorithm::isPointInPolygon(const Eigen::Vector2d& pos, const std::vec
 double MyBugAlgorithm::crossProduct(const Eigen::Vector2d& a, const Eigen::Vector2d& b) {
     return a.x() * b.y() - a.y() * b.x();
 }
+    
