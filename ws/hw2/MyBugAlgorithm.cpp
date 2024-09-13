@@ -16,10 +16,10 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
     // unpack initial position vector
     pos[0] = problem.q_init[0]; pos[1] = problem.q_init[1];
     goal[0] = problem.q_goal[0]; goal[1] = problem.q_goal[1];
-    path.waypoints.push_back(pos);  // push initial waypoint
-
+    path.waypoints.push_back(pos);              // push initial waypoint
+    double mlineangle = sniff(pos,goal);        // m-line
     // main planning loop
-    while (!completepath && i < 10000) {
+    while (!completepath && i < 75) {
         range2goal = sonar(pos, goal);
         angle2goal = sniff(pos, goal);
         switch (bugMode) {
@@ -28,8 +28,8 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
                     bugMode = 3;                                    // send to goal mode
                     break;
                 } else {                                            // test step along M-line
-                    proposedStep[0] = pos[0] + cos(angle2goal) / 2;
-                    proposedStep[1] = pos[1] + sin(angle2goal) / 2;
+                    proposedStep[0] = pos[0] + cos(angle2goal) / 4;
+                    proposedStep[1] = pos[1] + sin(angle2goal) / 4;
                     if (!boolCollision(proposedStep, problem)) {     // if M-line step does not collide with obstacle                   
                         path.waypoints.push_back(proposedStep);     // push m-line step
                         pos = proposedStep;                         // set current position to m-line step
@@ -39,32 +39,55 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
                 }
                 break; 
             }
-            case 2: { // follow object 
+            case 2: { // follow object - BUG 2
                 // identify object to be stepped over
                 proposedStep[0] = pos[0] + cos(angle2goal) / 4;
                 proposedStep[1] = pos[1] + sin(angle2goal) / 4;
+                // get collision obstacle 
                 std::vector<Eigen::Vector2d> obs = getCollisionObstacle(proposedStep, problem);
-
-                // get parallel to obstacle nearest edge
-                bool foundBestPoint = false;
-                double minDist2Goal = std::numeric_limits<double>::max();
-                int j = 0;
-                while (!foundBestPoint&&(j<100)) {
-                    double dist2goal = sonar(pos, goal);
-                    // follow the edge of the obstacle with parallelVector
-                    Eigen::Vector2d parallelVector = parallelVec(obs, pos);
-                    // step forward by adding parallel vector to current position
-                    proposedStep = pos + parallelVector / 4;
-                    // push waypoint to path
-                    path.waypoints.push_back(proposedStep);
-                    // update current position
-                    pos = proposedStep;
-                    j = j+1;
-                }
-                // head back to the closest point to the goal
-                pos = closestPoint;
-                path.waypoints.push_back(pos);
-                bugMode = 1; // switch back to pure pursuit mode
+                    // move around obstacle 
+                        int verticesTransited = 0;
+                        int currentVertexIdx = getClosestVertex(pos, obs);
+                        int nextCWVertexIdx;
+                        Eigen::Vector2d currentVertexPoint;
+                        Eigen::Vector2d nextCWVertexPoint;
+                        double distMovedAlongEdge = 0;
+                        double angle2goalfrompos;
+                        double edgeLength;                                 
+                        Eigen::Vector2d parallelVector;                    // vector parallel to edge to transit
+                        bool breakCircumnavigateLoop = false;              // flag if the bug re-encounters m-line
+                        bool breakEdgeLoop = false;                        // flag if the bug encounters another obstacle in transit around first obstacle 
+                        std::vector<double> distToGoalInLoop;
+                        std::vector<Eigen::Vector2d> posInLoop;
+                        int circumnavigateVectorIDX = 0 ;
+                        // circumnavigate obstacle
+                        while (verticesTransited<obs.size()&&!breakCircumnavigateLoop){                 // while we have yet to circumnavigate the obstacle and haven't run into another obstacle
+                            nextCWVertexIdx = (currentVertexIdx + 1)%obs.size();                        // vertex index to move to next, clockwise 
+                            currentVertexPoint = obs[currentVertexIdx];                                 // current vertex point
+                            nextCWVertexPoint = obs[nextCWVertexIdx];                                   // next vertex point, clockwise
+                            distMovedAlongEdge = 0;                                                     // distance moved along this edge 
+                            edgeLength = (pos-nextCWVertexPoint).norm();                                // distance we need to move along the edge
+                            parallelVector = parallelVecPoints(currentVertexPoint, nextCWVertexPoint);  // vector parallel to this edge
+                            // move along edge
+                            
+                            while (distMovedAlongEdge<(edgeLength+0.1) && !breakEdgeLoop){                                // while distance we need to move < distance we have moved 
+                                distMovedAlongEdge = distMovedAlongEdge + (parallelVector/6).norm();    // iterate distance moved
+                                pos = pos + parallelVector/6;                                           // shift position
+                                if (!boolCollision(pos, problem)){                                      // if edge-parallel step doesn't intersect obstacle 
+                                    path.waypoints.push_back(pos);                                      // push waypoints
+                                    if (verticesTransited>1 && (abs(abs(mlineangle)-abs(angle2goalfrompos)))<2){
+                                        breakCircumnavigateLoop=true;
+                                        bugMode=1;
+                                    }
+                                }else{                                                                  // else if our circumnavigation runs into an obstacle          
+                                    obs = getCollisionObstacle(pos, problem);                                      
+                                    breakEdgeLoop = true;                                                   // break the loop and try again with next obstacle 
+                                    break;
+                                }
+                            }
+                            verticesTransited= verticesTransited+1;
+                            currentVertexIdx = (currentVertexIdx+1)%obs.size();
+                        }
                 break; 
             }
             case 3: { // direct to goal
@@ -78,33 +101,33 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
     return path;
 }
 
-Eigen::Vector2d MyBugAlgorithm::parallelVec(const std::vector<Eigen::Vector2d>& vertices, const Eigen::Vector2d& point) {
+Eigen::Vector2d MyBugAlgorithm::parallelVecPoints(const Eigen::Vector2d& v1, const Eigen::Vector2d& v2){
+    Eigen::Vector2d edgeVector = v2 - v1;
+    return edgeVector.normalized();
+}
+Eigen::Vector2d MyBugAlgorithm::parallelVec(const std::vector<Eigen::Vector2d>& vertices, const Eigen::Vector2d& point) {   
+    int startingVertex = getClosestVertex(point, vertices);
+    // Ensure the next vertex index wraps around if it exceeds the number of vertices
+    int nextVertex = (startingVertex + 1) % vertices.size();
+    Eigen::Vector2d v1 = vertices[startingVertex];
+    Eigen::Vector2d v2 = vertices[nextVertex];
+    // Calculate the edge vector
+    Eigen::Vector2d edgeVector = v2 - v1;
+    return edgeVector.normalized();
+}
+// 
+int MyBugAlgorithm::getClosestVertex(const Eigen::Vector2d& pos, const std::vector<Eigen::Vector2d>& vertices) {
+    int vertexIdx = -1;
     double minDistance = std::numeric_limits<double>::max();
-    Eigen::Vector2d parallelVec;
-
     for (size_t i = 0; i < vertices.size(); ++i) {
-        Eigen::Vector2d v1 = vertices[i];
-        Eigen::Vector2d v2 = vertices[(i + 1) % vertices.size()];
-        Eigen::Vector2d edgeVector = v2 - v1;
-
-        // Calculate the projection of the point onto the edge
-        Eigen::Vector2d pointVector = point - v1;
-        double projection = pointVector.dot(edgeVector) / edgeVector.squaredNorm();
-        projection = std::max(0.0, std::min(1.0, projection)); // Clamp projection to the edge segment
-
-        Eigen::Vector2d closestPointOnEdge = v1 + projection * edgeVector;
-        double distance = (point - closestPointOnEdge).norm();
-
+        double distance = (vertices[i] - pos).norm();
         if (distance < minDistance) {
             minDistance = distance;
-            parallelVec = edgeVector;
+            vertexIdx = i;
         }
     }
-
-    // Normalize the closest edge vector to get the unit vector
-    return parallelVec.normalized();
+    return vertexIdx;
 }
-
 // get obstacle that point is colliding with
 std::vector<Eigen::Vector2d> MyBugAlgorithm::getCollisionObstacle(Eigen::Vector2d& pos, const amp::Problem2D problem){
     std::vector<Eigen::Vector2d> OOI = problem.obstacles[1].verticesCW();

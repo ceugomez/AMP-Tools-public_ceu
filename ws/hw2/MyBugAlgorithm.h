@@ -16,6 +16,8 @@ class MyBugAlgorithm : public amp::BugAlgorithm {
         double crossProduct(const Eigen::Vector2d& a, const Eigen::Vector2d& b); 
         std::vector<Eigen::Vector2d> getCollisionObstacle(Eigen::Vector2d& pos, const amp::Problem2D problem);
         Eigen::Vector2d parallelVec(const std::vector<Eigen::Vector2d>& vertices, const Eigen::Vector2d& point);
+        int getClosestVertex(const Eigen::Vector2d& pos, const std::vector<Eigen::Vector2d>& vertices);
+        Eigen::Vector2d parallelVecPoints(const Eigen::Vector2d& v1, const Eigen::Vector2d& v2);
     private:
         // Add any member variables here...
 };
