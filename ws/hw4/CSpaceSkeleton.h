@@ -14,7 +14,9 @@ class MyGridCSpace2D : public amp::GridCSpace2D {
         {}
 
         // Override this method for determining which cell a continuous point belongs to
-        virtual std::pair<std::size_t, std::size_t> getCellFromPoint(double x0, double x1) const override;
+        virtual std::pair<std::size_t, std::size_t> getCellFromPoint(double x0, double x1) const override;        
+        // Declare the Minkowski sum function
+        static std::vector<Eigen::Vector2d> getMinkowskiSumRobotObstacle(const amp::Obstacle2D& obstacle, const amp::Obstacle2D& robot);
 
 };
 

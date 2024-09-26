@@ -30,3 +30,21 @@ std::unique_ptr<amp::GridCSpace2D> MyManipulatorCSConstructor::construct(const a
     // The reason why this works is not super important for our purposes, but if you are curious, look up polymorphism!
     return cspace_ptr;
 }
+
+std::vector<Eigen::Vector2d> MyGridCSpace2D::getMinkowskiSumRobotObstacle(const amp::Obstacle2D& obstacle, const amp::Obstacle2D& robot) {
+    std::vector<Eigen::Vector2d> CSpaceObstacle;
+    
+    // Get the vertices of the obstacle and the robot
+    const std::vector<Eigen::Vector2d>& obstacleVertices = obstacle.verticesCCW();
+    const std::vector<Eigen::Vector2d>& robotVertices = robot.verticesCCW();
+    
+    // Compute the Minkowski sum
+    for (const auto& oVertex : obstacleVertices) {
+        for (const auto& rVertex : robotVertices) {
+            Eigen::Vector2d sumVertex = oVertex - rVertex;
+            CSpaceObstacle.push_back(sumVertex);
+        }
+    }
+    
+    return CSpaceObstacle;
+}
