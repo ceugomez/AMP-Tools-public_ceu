@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
     amp::Obstacle2D obstacleCspace = amp::Obstacle2D(cspaceVertices);
 
     Visualizer::makeFigure({obstacleRspace});
-
+    Visualizer::makeFigure({obstacleCspace});
 
 
 

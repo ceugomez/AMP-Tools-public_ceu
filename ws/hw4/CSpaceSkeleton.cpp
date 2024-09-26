@@ -37,12 +37,27 @@ std::vector<Eigen::Vector2d> MyGridCSpace2D::getMinkowskiSumRobotObstacle(const 
     // Get the vertices of the obstacle and the robot
     const std::vector<Eigen::Vector2d>& obstacleVertices = obstacle.verticesCCW();
     const std::vector<Eigen::Vector2d>& robotVertices = robot.verticesCCW();
-    
-    // Compute the Minkowski sum
-    for (const auto& oVertex : obstacleVertices) {
-        for (const auto& rVertex : robotVertices) {
-            Eigen::Vector2d sumVertex = oVertex - rVertex;
-            CSpaceObstacle.push_back(sumVertex);
+    Eigen::Vector2d obstacleCentroid;
+    int n = obstacleVertices.size();
+    double sumX; double sumY;
+    for (const auto& vertex : obstacleVertices) {
+        sumX += vertex.x();
+        sumY += vertex.y();
+    }
+
+
+    obstacleCentroid.x() = (sumX/n);
+    obstacleCentroid.y() = (sumY/n);
+
+    for (int i=0; i<=obstacleVertices.size(); ++i){
+        // for every vertex in the obstacle 
+
+        for (int j=0; j<=robotVertices.size(); ++j){
+            // for every vertex in the robot
+            // sum vertex to point 
+            Eigen::Vector2d point = robotVertices[j]+obstacleVertices[i];
+            Eigen::Vector2d diff = obstacleCentroid - point;
+            CSpaceObstacle.push_back(point);
         }
     }
     

@@ -17,6 +17,9 @@ class MyGridCSpace2D : public amp::GridCSpace2D {
         virtual std::pair<std::size_t, std::size_t> getCellFromPoint(double x0, double x1) const override;        
         // Declare the Minkowski sum function
         static std::vector<Eigen::Vector2d> getMinkowskiSumRobotObstacle(const amp::Obstacle2D& obstacle, const amp::Obstacle2D& robot);
+        //double cross(const Eigen::Vector2d& O, const Eigen::Vector2d& A, const Eigen::Vector2d& B);
+        //std::vector<Eigen::Vector2d> (std::vector<Eigen::Vector2d>& points);
+        
 
 };
 
