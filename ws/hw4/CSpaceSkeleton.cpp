@@ -1,35 +1,58 @@
 #include "CSpaceSkeleton.h"
+#include "ManipulatorSkeleton.h"
 
 // Override this method for returning whether or not a point is in collision
 std::pair<std::size_t, std::size_t> MyGridCSpace2D::getCellFromPoint(double x0, double x1) const {
     // Implement your discretization procedure here, such that the point (x0, x1) lies within the returned cell
     // simply returns the cell indices of my discrete grid when given an (x0, x1) state in continuous space. 
     // 100x100 cell grid
-    double gridcell_size = 2*std::numbers::pi/100;
+    double m = 2*std::numbers::pi/100;
     // get what cell it's in
-    std::size_t cell_x = floor(x0/gridcell_size); // x index of cell
-    std::size_t cell_y = floor(x1/gridcell_size); // x index of cell
+    std::size_t cell_x = floor(x0/m); // x index of cell
+    std::size_t cell_y = floor(x1/m); // x index of cell
     return {cell_x, cell_y};
 }
-// Override this method for computing all of the boolean collision values for each cell in the cspace
+
+
 std::unique_ptr<amp::GridCSpace2D> MyManipulatorCSConstructor::construct(const amp::LinkManipulator2D& manipulator, const amp::Environment2D& env) {
     // Create an object of my custom cspace type (e.g. MyGridCSpace2D) and store it in a unique pointer. 
     // Pass the constructor parameters to std::make_unique()
-    std::unique_ptr<MyGridCSpace2D> cspace_ptr = std::make_unique<MyGridCSpace2D>(m_cells_per_dim, m_cells_per_dim, env.x_min, env.x_max, env.y_min, env.y_max);
-    // In order to use the pointer as a regular GridCSpace2D object, we can just create a reference
+
+    double pi = M_PI;
+    double cspace_xmin = 0.0;
+    double cspace_xmax = 2*pi;
+    double cspace_ymin = 0.0;
+    double cspace_ymax = 2*pi;
+
+    std::unique_ptr<MyGridCSpace2D> cspace_ptr = std::make_unique<MyGridCSpace2D>(m_cells_per_dim, m_cells_per_dim, cspace_xmin, cspace_xmax, cspace_ymin, cspace_ymax);
     MyGridCSpace2D& cspace = *cspace_ptr;
 
-    // Determine if each cell is in collision or not, and store the values the cspace. This `()` operator comes from DenseArray base class
-    cspace(1, 3) = true;
-    cspace(3, 3) = true;
-    cspace(0, 1) = true;
-    cspace(1, 0) = true;
-    cspace(2, 0) = true;
-    cspace(3, 0) = true;
-    cspace(4, 1) = true;
+    // Iterate through every discretization of t1 and t2
+    for (int i = 0; i < m_cells_per_dim; ++i) {              // for each element in dimension 1
+        for (int j = 0; j < m_cells_per_dim; ++j) {          // for each element in dimension 2
+            double n = manipulator.nLinks();
+            amp::ManipulatorState cspace_state(2);                          // initialize cspace-state
+            cspace_state[0] = i * (2 * std::numbers::pi / m_cells_per_dim); // set joint angle, evenly spaced between 0 and 2pi, for x1
+            cspace_state[1] = j * (2 * std::numbers::pi / m_cells_per_dim); // set joint angle, evenly spaced between 0 and 2pi, for x2
 
-    // Returning the object of type std::unique_ptr<MyGridCSpace2D> can automatically cast it to a polymorphic base-class pointer of type std::unique_ptr<amp::GridCSpace2D>.
-    // The reason why this works is not super important for our purposes, but if you are curious, look up polymorphism!
+            // Ensure indices are within bounds
+            if (i >= m_cells_per_dim || j >= m_cells_per_dim) {
+                LOG("Index out of bounds: i = " + std::to_string(i) + ", j = " + std::to_string(j));
+                continue;
+            }
+
+            cspace(i,j) = false;    // initialize to false
+            Eigen::Vector2d endpos_rspace = manipulator.getJointLocation(cspace_state, n);
+
+            for (const amp::Polygon& obstacle : env.obstacles) {
+                if (cspace.isPointInPolygon(endpos_rspace, obstacle.verticesCW())) {    // if end effector position is within an obstacle
+                    //LOG(endpos_rspace);
+                    cspace(i,j) = true;
+                    break;
+                }
+            }
+        }
+    }
     return cspace_ptr;
 }
 

@@ -15,6 +15,8 @@ class MyGridCSpace2D : public amp::GridCSpace2D {
         bool isPointInPolygon(const Eigen::Vector2d& pos, const std::vector<Eigen::Vector2d>& vertices);
         double crossProduct(const Eigen::Vector2d& a, const Eigen::Vector2d& b);
         std::vector<double> linspace(double start, double end, int num);
+        bool isArmInCollision(const amp::Environment2D& env, const amp::LinkManipulator2D& manipulator, const amp::ManipulatorState& state, const Eigen::Vector2d& end_pos);
+
 
 };
 
