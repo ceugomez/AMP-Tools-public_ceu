@@ -1,9 +1,5 @@
 #pragma once
-
-// This includes all of the necessary header files in the toolbox
 #include "AMPCore.h"
-
-// Include the correct homework header
 #include "hw/HW4.h"
 
 // Derive the amp::GridCSpace2D class and override the missing method
@@ -15,11 +11,10 @@ class MyGridCSpace2D : public amp::GridCSpace2D {
 
         // Override this method for determining which cell a continuous point belongs to
         virtual std::pair<std::size_t, std::size_t> getCellFromPoint(double x0, double x1) const override;        
-        // Declare the Minkowski sum function
         static std::vector<Eigen::Vector2d> getMinkowskiSumRobotObstacle(const amp::Obstacle2D& obstacle, const amp::Obstacle2D& robot);
-        //double cross(const Eigen::Vector2d& O, const Eigen::Vector2d& A, const Eigen::Vector2d& B);
-        //std::vector<Eigen::Vector2d> (std::vector<Eigen::Vector2d>& points);
-        
+        bool isPointInPolygon(const Eigen::Vector2d& pos, const std::vector<Eigen::Vector2d>& vertices);
+        double crossProduct(const Eigen::Vector2d& a, const Eigen::Vector2d& b);
+        std::vector<double> linspace(double start, double end, int num);
 
 };
 
