@@ -25,15 +25,19 @@ Eigen::Vector2d MyManipulator2D::getJointLocation(const amp::ManipulatorState& s
 // Forward kinematics function using AutoDiff
 template<typename Scalar>
 Eigen::Matrix<Scalar, 2, 1> MyManipulator2D::forwardKinematics(const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& joint_angles) const {
-    Scalar x = m_base_location[0];
-    Scalar y = m_base_location[1];
-    Scalar theta = 0;
+    std::vector<double> links = m_link_lengths;
+    Eigen::Matrix<Scalar, 2, 1> ip(m_base_location[0], m_base_location[1]);
+    std::vector<Eigen::Matrix<Scalar, 2, 1>> joint_positions;
+    Scalar theta_accum = 0.0;
+    joint_positions.push_back(ip);
     for (int i = 0; i < joint_angles.size(); ++i) {
-        theta += joint_angles[i];
-        x += m_link_lengths[i] * cos(theta);
-        y += m_link_lengths[i] * sin(theta);
+        theta_accum += joint_angles[i];
+        Eigen::Matrix<Scalar, 2, 1> joint_position;
+        joint_position.x() = links[i] * cos(theta_accum) + joint_positions[i].x();
+        joint_position.y() = links[i] * sin(theta_accum) + joint_positions[i].y();
+        joint_positions.push_back(joint_position);
     }
-    return Eigen::Matrix<Scalar, 2, 1>(x, y);
+    return joint_positions.back();
 }
 
 // Compute the Jacobian using AutoDiff
