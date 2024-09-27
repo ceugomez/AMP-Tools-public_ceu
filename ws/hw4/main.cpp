@@ -10,11 +10,11 @@
 using namespace amp;
 int main(int argc, char** argv) {
     amp::RNG::seed(amp::RNG::randiUnbounded());
-
+    /* Problem 1 -------------------------------------------------------------------------*/
     const amp::Obstacle2D obstacleRspace = HW4::getEx1TriangleObstacle();
     std::vector<Eigen::Vector2d> cspaceVertices = MyGridCSpace2D::getMinkowskiSumRobotObstacle(obstacleRspace, obstacleRspace);
     amp::Obstacle2D obstacleCspace = amp::Obstacle2D(cspaceVertices);
-
+    /* Problem 2 -------------------------------------------------------------------------*/
     MyManipulator2D manipulator;
     double pi = std::numbers::pi;
     amp::ManipulatorState test_state_1(3);
@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
     Eigen::Vector2d end_state_1 = manipulator.getJointLocation(test_state_1, 3);
     Eigen::Vector2d end_state_autodiff = manipulator.forwardKinematics<double>(test_state_1);
     amp::ManipulatorState IK_state_1 = manipulator.getConfigurationFromIK(end_state_1);
-
+    /* Problem 3 --------------------------------------------------------------------------*/
     std::size_t n_cells = 500;
     MyManipulatorCSConstructor cspace_constructor(n_cells);
     std::unique_ptr<amp::GridCSpace2D> cspace = cspace_constructor.construct(manipulator, HW4::getEx3Workspace1());

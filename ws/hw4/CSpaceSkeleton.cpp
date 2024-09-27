@@ -5,7 +5,6 @@
 std::pair<std::size_t, std::size_t> MyGridCSpace2D::getCellFromPoint(double x0, double x1) const {
     // Implement your discretization procedure here, such that the point (x0, x1) lies within the returned cell
     // simply returns the cell indices of my discrete grid when given an (x0, x1) state in continuous space. 
-    // 100x100 cell grid
     double m = 2*std::numbers::pi/100;
     // get what cell it's in
     std::size_t cell_x = floor(x0/m); // x index of cell
@@ -35,20 +34,23 @@ std::unique_ptr<amp::GridCSpace2D> MyManipulatorCSConstructor::construct(const a
             cspace_state[0] = i * (2 * std::numbers::pi / m_cells_per_dim); // set joint angle, evenly spaced between 0 and 2pi, for x1
             cspace_state[1] = j * (2 * std::numbers::pi / m_cells_per_dim); // set joint angle, evenly spaced between 0 and 2pi, for x2
 
-            // Ensure indices are within bounds
-            if (i >= m_cells_per_dim || j >= m_cells_per_dim) {
-                LOG("Index out of bounds: i = " + std::to_string(i) + ", j = " + std::to_string(j));
-                continue;
-            }
-
-            cspace(i,j) = false;    // initialize to false
             Eigen::Vector2d endpos_rspace = manipulator.getJointLocation(cspace_state, n);
 
             for (const amp::Polygon& obstacle : env.obstacles) {
-                if (cspace.isPointInPolygon(endpos_rspace, obstacle.verticesCW())) {    // if end effector position is within an obstacle
+                if (cspace.isPointInPolygon(endpos_rspace, obstacle.verticesCCW())) {    // if end effector position is within an obstacle
                     //LOG(endpos_rspace);
                     cspace(i,j) = true;
                     break;
+                }else {                                                                 
+                    // check if line segments are within obstacle 
+                    for (int k = 0; k < n; ++k) {
+                        Eigen::Vector2d link_start = manipulator.getJointLocation(cspace_state, k);
+                        Eigen::Vector2d link_end = manipulator.getJointLocation(cspace_state, k + 1);
+                        if (cspace.isSegmentInCollision(link_start, link_end, obstacle.verticesCCW())) {
+                            cspace(i,j) = true;
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -56,6 +58,17 @@ std::unique_ptr<amp::GridCSpace2D> MyManipulatorCSConstructor::construct(const a
     return cspace_ptr;
 }
 
+bool MyGridCSpace2D::isSegmentInCollision(const Eigen::Vector2d& linkStart,const Eigen::Vector2d& linkEnd, const std::vector<Eigen::Vector2d>& vertices){
+    int n = vertices.size();
+    for (int i = 0; i < n; ++i) {
+        Eigen::Vector2d p3 = vertices[i];
+        Eigen::Vector2d p4 = vertices[(i + 1) % n];
+        if (doIntersect(linkStart, linkEnd, p3, p4)) {
+            return true;
+        }
+    }
+    return false;
+}
 // Helper functions
 std::vector<Eigen::Vector2d> MyGridCSpace2D::getMinkowskiSumRobotObstacle(const amp::Obstacle2D& obstacle, const amp::Obstacle2D& robot) {
     std::vector<Eigen::Vector2d> CSpaceObstacle;
@@ -123,4 +136,30 @@ std::vector<double> MyGridCSpace2D::linspace(double start, double end, int num) 
         result.push_back(start + i * step);
     }
     return result;
+}
+bool MyGridCSpace2D::onSegment(const Eigen::Vector2d& p, const Eigen::Vector2d& q, const Eigen::Vector2d& r) {
+    return q.x() <= std::max(p.x(), r.x()) && q.x() >= std::min(p.x(), r.x()) &&
+           q.y() <= std::max(p.y(), r.y()) && q.y() >= std::min(p.y(), r.y());
+}
+int MyGridCSpace2D::orientation(const Eigen::Vector2d& p, const Eigen::Vector2d& q, const Eigen::Vector2d& r) {
+    double val = (q.y() - p.y()) * (r.x() - q.x()) - (q.x() - p.x()) * (r.y() - q.y());
+    if (val == 0) return 0;  // collinear
+    return (val > 0) ? 1 : 2; // clock or counterclock wise
+}
+bool MyGridCSpace2D::doIntersect(const Eigen::Vector2d& p1, const Eigen::Vector2d& q1, const Eigen::Vector2d& p2, const Eigen::Vector2d& q2) {
+    int o1 = orientation(p1, q1, p2);
+    int o2 = orientation(p1, q1, q2);
+    int o3 = orientation(p2, q2, p1);
+    int o4 = orientation(p2, q2, q1);
+
+    // General case
+    if (o1 != o2 && o3 != o4) return true;
+
+    // Special cases
+    if (o1 == 0 && onSegment(p1, p2, q1)) return true;
+    if (o2 == 0 && onSegment(p1, q2, q1)) return true;
+    if (o3 == 0 && onSegment(p2, p1, q2)) return true;
+    if (o4 == 0 && onSegment(p2, q1, q2)) return true;
+
+    return false;
 }
