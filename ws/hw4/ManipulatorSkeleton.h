@@ -1,10 +1,8 @@
 #pragma once
-
-// This includes all of the necessary header files in the toolbox
 #include "AMPCore.h"
-
-// Include the correct homework header
 #include "hw/HW4.h"
+#include <Eigen/Dense>
+#include <unsupported/Eigen/AutoDiff>
 
 // Derive the amp::LinkManipulator2D class
 class MyManipulator2D : public amp::LinkManipulator2D {
@@ -17,5 +15,8 @@ class MyManipulator2D : public amp::LinkManipulator2D {
 
         // Override this method for implementing inverse kinematics
         virtual amp::ManipulatorState getConfigurationFromIK(const Eigen::Vector2d& end_effector_location) const override;
-        Eigen::MatrixXd computeJacobian(const Eigen::VectorXd& joint_angles);
+    private:
+        template<typename Scalar>
+        Eigen::Matrix<Scalar, 2, 1> forwardKinematics(const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& joint_angles) const;
+        Eigen::MatrixXd computeJacobian(const Eigen::VectorXd& joint_angles) const;
 };

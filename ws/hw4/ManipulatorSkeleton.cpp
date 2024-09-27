@@ -22,50 +22,77 @@ Eigen::Vector2d MyManipulator2D::getJointLocation(const amp::ManipulatorState& s
     }
     return joint_positions[joint_index];
 }
-amp::ManipulatorState MyManipulator2D::getConfigurationFromIK(const Eigen::Vector2d& end_effector_location) const {
-    // Implement inverse kinematics here
-
-    amp::ManipulatorState joint_angles;
-    joint_angles.setZero(nLinks()); // Ensure joint_angles is initialized to the correct size
-    
-    // If you have different implementations for 2/3/n link manipulators, you can separate them here
-    if (nLinks() == 2) {
-        // Implement IK for 2-link manipulator here
-        return joint_angles;
-    } else if (nLinks() == 3) {
-        double x = end_effector_location[0] - m_base_location[0];
-        double y = end_effector_location[1] - m_base_location[0];
-        double x_s = m_base_location[0];
-        double y_s = m_base_location[1];
-        double L1 = m_link_lengths[0];
-        double L2 = m_link_lengths[1];
-        double L3 = m_link_lengths[2];
-        
-        // Calculate the distance from the base to the end-effector
-        double r = sqrt((x)*(x) + (y)*(y));
-        if (r > reach()) {
-            LOG("goal point greater than reach");
-            throw std::runtime_error("No solution exists for the given end-effector position. [R]");
-        }
-
-        // Calculate the wrist position
-        double x_w = x - L3 * (x/r);
-        double y_w = y - L3 * (y/r);
-        double D = ((x_w)*(x_w) + (y_w)*(y_w) - L1 * L1 - L2 * L2) / (2 * L1 * L2);
-        if (D < -1 || D > 1) {
-            throw std::runtime_error("No solution exists for the given end-effector position. [D]");
-        }
-        
-        double theta2 = atan2(sqrt(1 - D * D), D);
-        double theta1 = atan2(y_w, x_w) - atan2(L2 * sin(theta2), L1 + L2 * cos(theta2));
-        double theta3 = atan2(y - y_w, x - x_w) - theta1 - theta2;
-        
-        joint_angles << theta1, theta2, theta3;
-        return joint_angles;
-    } else {
-        // Implement IK for other cases here
-        return joint_angles;
+// Forward kinematics function using AutoDiff
+template<typename Scalar>
+Eigen::Matrix<Scalar, 2, 1> MyManipulator2D::forwardKinematics(const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& joint_angles) const {
+    Scalar x = m_base_location[0];
+    Scalar y = m_base_location[1];
+    Scalar theta = 0;
+    for (int i = 0; i < joint_angles.size(); ++i) {
+        theta += joint_angles[i];
+        x += m_link_lengths[i] * cos(theta);
+        y += m_link_lengths[i] * sin(theta);
     }
+    return Eigen::Matrix<Scalar, 2, 1>(x, y);
+}
+
+// Compute the Jacobian using AutoDiff
+Eigen::MatrixXd MyManipulator2D::computeJacobian(const Eigen::VectorXd& joint_angles) const {
+    using AutoDiffScalar = Eigen::AutoDiffScalar<Eigen::VectorXd>;
+    Eigen::Matrix<AutoDiffScalar, Eigen::Dynamic, 1> joint_angles_ad = joint_angles.cast<AutoDiffScalar>();
+    for (int i = 0; i < joint_angles.size(); ++i) {
+        joint_angles_ad[i].derivatives() = Eigen::VectorXd::Unit(joint_angles.size(), i);
+    }
+    Eigen::Matrix<AutoDiffScalar, 2, 1> end_effector_position_ad = forwardKinematics(joint_angles_ad);
+    Eigen::MatrixXd jacobian(2, joint_angles.size());
+    for (int i = 0; i < 2; ++i) {
+        jacobian.row(i) = end_effector_position_ad[i].derivatives();
+    }
+    return jacobian;
+}
+
+amp::ManipulatorState MyManipulator2D::getConfigurationFromIK(const Eigen::Vector2d& end_effector_location) const {
+    amp::ManipulatorState joint_angles;     // state vector
+    Eigen::Vector2d fp;
+    fp[0] = end_effector_location[0] - m_base_location[0];
+    fp[1] = end_effector_location[1] - m_base_location[1];
+    
+    joint_angles.setZero(nLinks());      
+    // least-squares formulation of inverse kinematics for n-link planar manipulator
+    const double tolerance = 1e-6; 
+    const int max_iterations = 5000;
+    Eigen::Vector2d current_position;
+    Eigen::MatrixXd jacobian;
+    Eigen::VectorXd delta_q;
+    Eigen::Vector2d error;
+
+    for (int iter = 0; iter < max_iterations; ++iter) {
+        //LOG(iter);
+        // Compute the current end-effector position using forward kinematics
+        current_position = forwardKinematics(joint_angles);
+
+        // Compute the error between the desired and current end-effector positions
+        error = fp - current_position;
+
+        // Check for convergence
+        if (error.norm() < tolerance) {
+            break;
+            LOG("error tolerance reached!");
+        }
+
+        // Compute the Jacobian
+        jacobian = computeJacobian(joint_angles);
+
+        // Solve the least-squares problem to find the change in joint angles
+        delta_q = jacobian.transpose() * (jacobian * jacobian.transpose()).inverse() * error;
+
+        // Update the joint angles
+        joint_angles += delta_q;
+        if (iter==(max_iterations-1)){
+        LOG("Did not converge to solution!");
+        }
+    }
+
 
     return joint_angles;
 }

@@ -10,26 +10,27 @@
 using namespace amp;
 
 int main(int argc, char** argv) {
-    /* Include this line to have different randomized environments every time you run your code (NOTE: this has no affect on grade()) */
     amp::RNG::seed(amp::RNG::randiUnbounded());
-
+    /* Problem 1 -----------------------------------------------------*/
     const amp::Obstacle2D obstacleRspace = HW4::getEx1TriangleObstacle();
-
-    // Compute the Minkowski sum
     std::vector<Eigen::Vector2d> cspaceVertices = MyGridCSpace2D::getMinkowskiSumRobotObstacle(obstacleRspace, obstacleRspace);
     amp::Obstacle2D obstacleCspace = amp::Obstacle2D(cspaceVertices);
-
     Visualizer::makeFigure({obstacleRspace});
     Visualizer::makeFigure({obstacleCspace});
 
-    MyManipulator2D manipulator;
-    double pi = std::numbers::pi;
-    // You can visualize your manipulator given an angle state like so:
-    amp::ManipulatorState test_state(3);
-    test_state << pi/6, -pi/3, 7*pi/4;
-    // The visualizer uses your implementation of forward kinematics to show the joint positions so you can use that to test your FK algorithm
-    Visualizer::makeFigure(manipulator, test_state); 
 
+    /* Problem 2 -----------------------------------------------------*/
+    MyManipulator2D manipulator;        //init manipulator
+    double pi = std::numbers::pi;       // whatever (yawn)
+    amp::ManipulatorState test_state_1(3);// initialize to test state 1
+    test_state_1 << pi/6, -pi/3, 7*pi/4;    // from hw
+    //Visualizer::makeFigure(manipulator, test_state_1); 
+    amp::ManipulatorState test_state_2(3);
+    test_state_2 << pi/6, -pi/3, 7*pi/4;
+    //Visualizer::makeFigure(manipulator, test_state_2)
+
+
+    /* Problem 3 -----------------------------------------------------*/
     // Create the collision space constructor
     std::size_t n_cells = 5;
     MyManipulatorCSConstructor cspace_constructor(n_cells);
