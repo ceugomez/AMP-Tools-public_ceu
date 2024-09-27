@@ -17,4 +17,5 @@ class MyManipulator2D : public amp::LinkManipulator2D {
 
         // Override this method for implementing inverse kinematics
         virtual amp::ManipulatorState getConfigurationFromIK(const Eigen::Vector2d& end_effector_location) const override;
+        Eigen::MatrixXd computeJacobian(const Eigen::VectorXd& joint_angles);
 };

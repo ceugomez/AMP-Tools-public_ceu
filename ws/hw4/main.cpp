@@ -1,15 +1,11 @@
 // This includes all of the necessary header files in the toolbox
 #include "AMPCore.h"
-
-// Include the correct homework header
 #include "hw/HW4.h"
-
-// Include the headers for HW4 code
 #include "CSpaceSkeleton.h"
 #include "ManipulatorSkeleton.h"
-
-// Include the header of the shared class
 #include "HelpfulClass.h"
+#include <Eigen/Dense>
+#include <unsupported/Eigen/AutoDiff>
 
 using namespace amp;
 
@@ -26,13 +22,11 @@ int main(int argc, char** argv) {
     Visualizer::makeFigure({obstacleRspace});
     Visualizer::makeFigure({obstacleCspace});
 
-
-
     MyManipulator2D manipulator;
     double pi = std::numbers::pi;
     // You can visualize your manipulator given an angle state like so:
-    amp::ManipulatorState test_state(2);
-    test_state << 2*pi/6, -pi/2;
+    amp::ManipulatorState test_state(3);
+    test_state << pi/6, -pi/3, 7*pi/4;
     // The visualizer uses your implementation of forward kinematics to show the joint positions so you can use that to test your FK algorithm
     Visualizer::makeFigure(manipulator, test_state); 
 
