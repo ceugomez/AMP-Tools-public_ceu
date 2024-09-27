@@ -24,9 +24,24 @@ int main(int argc, char** argv) {
     double pi = std::numbers::pi;       // whatever (yawn)
     amp::ManipulatorState test_state_1(3);// initialize to test state 1
     test_state_1 << pi/6, -pi/3, 7*pi/4;    // from hw
+    Eigen::Vector2d end_state_1 = manipulator.getJointLocation(test_state_1,3);
+    Eigen::Vector2d end_state_autodiff = manipulator.forwardKinematics<double>(test_state_1);
+    LOG(end_state_1);
+    LOG(end_state_autodiff);
+    amp::ManipulatorState IK_state_1 = manipulator.getConfigurationFromIK(end_state_1);
+    LOG(test_state_1);
+    LOG(IK_state_1);
+
+
+    // test inverse kinematics, 3-link
+
+
+
     //Visualizer::makeFigure(manipulator, test_state_1); 
     amp::ManipulatorState test_state_2(3);
     test_state_2 << pi/6, -pi/3, 7*pi/4;
+
+
     //Visualizer::makeFigure(manipulator, test_state_2)
 
 

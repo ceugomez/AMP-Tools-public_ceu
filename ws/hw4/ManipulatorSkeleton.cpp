@@ -1,5 +1,5 @@
 #include "ManipulatorSkeleton.h"
-
+#include <unsupported/Eigen/AutoDiff>
 
 MyManipulator2D::MyManipulator2D()
     : LinkManipulator2D({1.0, 1.0, 1.5}) // Default to a 2-link with all links of 1.0 length
@@ -16,12 +16,13 @@ Eigen::Vector2d MyManipulator2D::getJointLocation(const amp::ManipulatorState& s
     for (int i = 0; i <= joint_index; ++i) {
         theta_accum += state[i];
         Eigen::Vector2d joint_position;
-        joint_position.x() = links[i] * cos(theta_accum)+joint_positions[i].x();
-        joint_position.y() = links[i] * sin(theta_accum)+joint_positions[i].y();
+        joint_position.x() = links[i] * cos(theta_accum) + joint_positions[i].x();
+        joint_position.y() = links[i] * sin(theta_accum) + joint_positions[i].y();
         joint_positions.push_back(joint_position);
     }
     return joint_positions[joint_index];
 }
+
 // Forward kinematics function using AutoDiff
 template<typename Scalar>
 Eigen::Matrix<Scalar, 2, 1> MyManipulator2D::forwardKinematics(const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& joint_angles) const {
@@ -54,6 +55,13 @@ Eigen::MatrixXd MyManipulator2D::computeJacobian(const Eigen::VectorXd& joint_an
     }
     return jacobian;
 }
+// Compute the Moore-Penrose pseudoinverse of a matrix
+Eigen::MatrixXd MyManipulator2D::pseudoInverse(const Eigen::MatrixXd& matrix) const {
+    double epsilon = std::numeric_limits<double>::epsilon();
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(matrix, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    double tolerance = epsilon * std::max(matrix.cols(), matrix.rows()) * svd.singularValues().array().abs().maxCoeff();
+    return svd.matrixV() * (svd.singularValues().array().abs() > tolerance).select(svd.singularValues().array().inverse(), 0).matrix().asDiagonal() * svd.matrixU().adjoint();
+}
 
 amp::ManipulatorState MyManipulator2D::getConfigurationFromIK(const Eigen::Vector2d& end_effector_location) const {
     amp::ManipulatorState joint_angles;     // state vector
@@ -64,7 +72,7 @@ amp::ManipulatorState MyManipulator2D::getConfigurationFromIK(const Eigen::Vecto
     joint_angles.setZero(nLinks());      
     // least-squares formulation of inverse kinematics for n-link planar manipulator
     const double tolerance = 1e-6; 
-    const int max_iterations = 5000;
+    const int max_iterations = 10000;
     Eigen::Vector2d current_position;
     Eigen::MatrixXd jacobian;
     Eigen::VectorXd delta_q;
@@ -80,15 +88,15 @@ amp::ManipulatorState MyManipulator2D::getConfigurationFromIK(const Eigen::Vecto
 
         // Check for convergence
         if (error.norm() < tolerance) {
+            LOG("error tolerance reached!");            
             break;
-            LOG("error tolerance reached!");
         }
 
         // Compute the Jacobian
         jacobian = computeJacobian(joint_angles);
 
         // Solve the least-squares problem to find the change in joint angles
-        delta_q = jacobian.transpose() * (jacobian * jacobian.transpose()).inverse() * error;
+        delta_q = MyManipulator2D::pseudoInverse(jacobian) * error;
 
         // Update the joint angles
         joint_angles += delta_q;
@@ -96,7 +104,6 @@ amp::ManipulatorState MyManipulator2D::getConfigurationFromIK(const Eigen::Vecto
         LOG("Did not converge to solution!");
         }
     }
-
 
     return joint_angles;
 }
