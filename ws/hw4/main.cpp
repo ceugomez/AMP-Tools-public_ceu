@@ -28,20 +28,20 @@ int main(int argc, char** argv) {
 
 
 
-    //MyManipulator2D manipulator;
-
+    MyManipulator2D manipulator;
+    double pi = std::numbers::pi;
     // You can visualize your manipulator given an angle state like so:
-    //amp::ManipulatorState test_state;
-    //test_state.setZero();
+    amp::ManipulatorState test_state(2);
+    test_state << 2*pi/6, -pi/2;
     // The visualizer uses your implementation of forward kinematics to show the joint positions so you can use that to test your FK algorithm
-    //Visualizer::makeFigure(manipulator, test_state); 
+    Visualizer::makeFigure(manipulator, test_state); 
 
     // Create the collision space constructor
-    //std::size_t n_cells = 5;
-    //MyManipulatorCSConstructor cspace_constructor(n_cells);
+    std::size_t n_cells = 5;
+    MyManipulatorCSConstructor cspace_constructor(n_cells);
 
     // Create the collision space using a given manipulator and environment
-    //std::unique_ptr<amp::GridCSpace2D> cspace = cspace_constructor.construct(manipulator, HW4::getEx3Workspace1());
+    std::unique_ptr<amp::GridCSpace2D> cspace = cspace_constructor.construct(manipulator, HW4::getEx3Workspace1());
 
     // You can visualize your cspace 
     //Visualizer::makeFigure(*cspace);
@@ -49,6 +49,6 @@ int main(int argc, char** argv) {
     Visualizer::showFigures();
 
     // Grade method
-    //amp::HW4::grade<MyManipulator2D>(cspace_constructor, "nonhuman.biologic@myspace.edu", argc, argv);
+    amp::HW4::grade<MyManipulator2D>(cspace_constructor, "cego6160@colorado.edu", argc, argv);
     return 0;
 }
