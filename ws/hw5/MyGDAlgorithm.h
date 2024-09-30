@@ -17,6 +17,8 @@ class MyGDAlgorithm : public amp::GDAlgorithm {
 
 		// Override this method to solve a given problem.
 		virtual amp::Path2D plan(const amp::Problem2D& problem) override;
+		// function to generate attractive potential function
+		
 	private:
 		double d_star, zetta, Q_star, eta;
 		// Add additional member variables here...
