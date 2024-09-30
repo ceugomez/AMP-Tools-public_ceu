@@ -17,8 +17,9 @@ class MyGDAlgorithm : public amp::GDAlgorithm {
 
 		// Override this method to solve a given problem.
 		virtual amp::Path2D plan(const amp::Problem2D& problem) override;
-		// function to generate attractive potential function
-		
+		bool checkEnd(const Eigen::Vector2d& pos, const Eigen::Vector2d& goal);
+
+
 	private:
 		double d_star, zetta, Q_star, eta;
 		// Add additional member variables here...
@@ -27,7 +28,12 @@ class MyGDAlgorithm : public amp::GDAlgorithm {
 class MyPotentialFunction : public amp::PotentialFunction2D {
     public:
 		// Returns the potential function value (height) for a given 2D point. 
-        virtual double operator()(const Eigen::Vector2d& q) const override {
-            return q[0] * q[0] + q[1] * q[1];
+		virtual double operator()(const Eigen::Vector2d& q) const override {
+            return q[0] * q[0] + q[1] * q[1];	// quadratic potential function, x^2+y^2  
         }
+		// Returns potential function gradient for a given point
+		Eigen::Vector2d gradient(const Eigen::Vector2d& q) const {
+            return Eigen::Vector2d(2 * q[0], 2 * q[1]);
+        }
+
 };
