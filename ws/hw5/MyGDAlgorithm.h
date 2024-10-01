@@ -17,10 +17,8 @@ class MyGDAlgorithm : public amp::GDAlgorithm {
 		// Override this method to solve a given problem.
 		virtual amp::Path2D plan(const amp::Problem2D& problem) override;
 		bool checkEnd(const Eigen::Vector2d& pos, const Eigen::Vector2d& goal);
-
 	private:
 		double d_star, zetta, Q_star, eta;
-		// Add additional member variables here...
 };
 
 class MyPotentialFunction : public amp::PotentialFunction2D {
@@ -37,21 +35,22 @@ class MyPotentialFunction : public amp::PotentialFunction2D {
 		// Returns the potential function value (height) for a given 2D point. 
 		virtual double operator()(const Eigen::Vector2d& q) const override {
 			Eigen::Vector2d diff = q - problem.q_goal;
-			// Attractive parabola centered on goal point
 			double fnval = 0.0;
 			double U_rep = 0.0;
+			// Attractive parabola centered on goal point
+			
 			double U_attr = diff[0] * diff[0] + diff[1] * diff[1]; // (x - goal_x)^2 + (y - goal_y)^2
-
+			// build repulsive parabola centered on obstacle circles
 			// Evaluate the 3 nearest obstacles
 			std::vector<int> nearest_indices = getNearestObstacleIndices(q, obs_centroid, 3);
 			for (int idx : nearest_indices) {
 				double distance_to_obstacle = (obs_centroid[idx] - q).norm();
-				double outer_radius = obs_radii[idx] + 0.5; // Narrower radius
+				double outer_radius = obs_radii[idx] + 0.4; // Narrower radius
 
 				// Build repulsive force function
 				if (distance_to_obstacle < outer_radius) {
 					double repulsive_distance = outer_radius - distance_to_obstacle;
-					U_rep += 50 * repulsive_distance * repulsive_distance; // Stronger quadratic repulsive term
+					U_rep += 10 * repulsive_distance * repulsive_distance; // Stronger quadratic repulsive term
 				}
 			}
 
@@ -68,17 +67,16 @@ class MyPotentialFunction : public amp::PotentialFunction2D {
 			std::vector<int> nearest_indices = getNearestObstacleIndices(q, obs_centroid, 3);
 			for (int idx : nearest_indices) {
 				double distance_to_obstacle = (obs_centroid[idx] - q).norm();
-				double outer_radius = obs_radii[idx] + 0.5; // Narrower radius
+				double outer_radius = obs_radii[idx] + 0.4; // Narrower radius
 
 				if (distance_to_obstacle < outer_radius) {
 					double repulsive_distance = outer_radius - distance_to_obstacle;
-					U_rep += 50 * repulsive_distance * (q - obs_centroid[idx]) / distance_to_obstacle; // Stronger gradient of the repulsive term
+					U_rep += 20 * repulsive_distance * (q - obs_centroid[idx]) / distance_to_obstacle; // Stronger gradient of the repulsive term
 				}
 			}
 
 			return Eigen::Vector2d(2 * U_attr[0] - U_rep[0], 2 * U_attr[1] - U_rep[1]);
 		}
-
 		// Helper function to return the indices of the nearest obstacles within the arrays of radii and centroid
 		std::vector<int> getNearestObstacleIndices(Eigen::Vector2d pos, std::vector<Eigen::Vector2d> centroid_list, int k) const {
 			std::vector<std::pair<double, int>> distances;
@@ -94,7 +92,6 @@ class MyPotentialFunction : public amp::PotentialFunction2D {
 			}
 			return nearest_indices;
 		}
-
 		// Helper function to get centroid of an obstacle
 		Eigen::Vector2d obstacleCentroid(const amp::Obstacle2D& obs) {
 			double cumsumx = 0;
@@ -107,7 +104,6 @@ class MyPotentialFunction : public amp::PotentialFunction2D {
 			}
 			return Eigen::Vector2d(cumsumx / n, cumsumy / n);
 		}
-
 		// Helper function to get max radii of an obstacle
 		double obstacleRadii(const amp::Obstacle2D& obs, const Eigen::Vector2d& centroid) {
 			double maxDist = 0; // initialize distance counter
@@ -118,7 +114,6 @@ class MyPotentialFunction : public amp::PotentialFunction2D {
 			}
 			return maxDist;
 		}
-
 	private:
 		const amp::Problem2D& problem; // store the problem structure
 		std::vector<Eigen::Vector2d> obs_centroid; // store center of obstacle avoidance circles
