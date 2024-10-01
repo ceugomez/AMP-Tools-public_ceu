@@ -19,11 +19,11 @@ int main(int argc, char** argv) {
     amp::Problem2D prob;
     bool success = HW5::generateAndCheck(algo, path, prob);
 
-
+    // visualize 2-d environment 
     Visualizer::makeFigure(prob, path);
 
     // Visualize your potential function
-    amp::Visualizer::makeFigure(MyPotentialFunction{}, prob.x_min, prob.x_max, prob.y_min, prob.y_max, 20);
+    amp::Visualizer::makeFigure(MyPotentialFunction(prob), prob.x_min, prob.x_max, prob.y_min, prob.y_max, 20);
     Visualizer::showFigures();
     
     // Arguments following argv correspond to the constructor arguments of MyGDAlgorithm:
