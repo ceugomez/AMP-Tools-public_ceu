@@ -24,16 +24,17 @@ class MyGDAlgorithm : public amp::GDAlgorithm {
 };
 
 class MyPotentialFunction : public amp::PotentialFunction2D {
-    public:
-        // Constructor to initialize with problem
-        MyPotentialFunction(const amp::Problem2D& problem) : problem(problem) {
+	public:
+		// Constructor to initialize with problem
+		MyPotentialFunction(const amp::Problem2D& problem) : problem(problem) {
 			// get centroid and radii of each obstacle
-			for (const amp::Obstacle2D& obs : problem.obstacles){
+			for (const amp::Obstacle2D& obs : problem.obstacles) {
 				obs_centroid.push_back(MyPotentialFunction::obstacleCentroid(obs));
 				obs_radii.push_back(MyPotentialFunction::obstacleRadii(obs, obs_centroid.back()));
 			}
 		}
-        // Returns the potential function value (height) for a given 2D point. 
+
+		// Returns the potential function value (height) for a given 2D point. 
 		virtual double operator()(const Eigen::Vector2d& q) const override {
 			Eigen::Vector2d diff = q - problem.q_goal;
 			// Attractive parabola centered on goal point
@@ -41,75 +42,85 @@ class MyPotentialFunction : public amp::PotentialFunction2D {
 			double U_rep = 0.0;
 			double U_attr = diff[0] * diff[0] + diff[1] * diff[1]; // (x - goal_x)^2 + (y - goal_y)^2
 
-			// Evaluate just the nearest obstacle
-			int idx = getNearestObstacleIndex(q, obs_centroid);
-			double distance_to_obstacle = (obs_centroid[idx] - q).norm();
-			double outer_radius = obs_radii[idx] + 1.0;
+			// Evaluate the 3 nearest obstacles
+			std::vector<int> nearest_indices = getNearestObstacleIndices(q, obs_centroid, 3);
+			for (int idx : nearest_indices) {
+				double distance_to_obstacle = (obs_centroid[idx] - q).norm();
+				double outer_radius = obs_radii[idx] + 0.5; // Narrower radius
 
-			// Build repulsive force function
-			if (distance_to_obstacle < outer_radius) {
-				double repulsive_distance = outer_radius - distance_to_obstacle;
-				U_rep = 10*repulsive_distance * repulsive_distance; // Quadratic repulsive term
+				// Build repulsive force function
+				if (distance_to_obstacle < outer_radius) {
+					double repulsive_distance = outer_radius - distance_to_obstacle;
+					U_rep += 50 * repulsive_distance * repulsive_distance; // Stronger quadratic repulsive term
+				}
 			}
 
 			fnval = U_attr + U_rep;
 			return fnval;
 		}
 
-        // Returns potential function gradient for a given point
-        Eigen::Vector2d gradient(const Eigen::Vector2d& q) {
-            Eigen::Vector2d U_attr = q - problem.q_goal;
-			Eigen::Vector2d U_rep = Eigen::Vector2d();
-			int idx = getNearestObstacleIndex(q, obs_centroid);
-			// build repulsive force function derivative
-			    double distance_to_obstacle = (obs_centroid[idx] - q).norm();
-   				double outer_radius = obs_radii[idx] + 1.0;
-			if (distance_to_obstacle < outer_radius) {
-				double repulsive_distance = outer_radius - distance_to_obstacle;
-				U_rep = -20 * repulsive_distance * (q - obs_centroid[idx]) / distance_to_obstacle; // Gradient of the repulsive term
-			}
+		// Returns potential function gradient for a given point
+		Eigen::Vector2d gradient(const Eigen::Vector2d& q) {
+			Eigen::Vector2d U_attr = q - problem.q_goal;
+			Eigen::Vector2d U_rep = Eigen::Vector2d::Zero();
 
-			return Eigen::Vector2d(5 * U_attr[0] + U_rep[0], 5 * U_attr[1] + U_rep[1]);
-		}
-		// helper function to return the nearest obstacle index within the arrays of radii and centroid
-		int getNearestObstacleIndex(Eigen::Vector2d pos, std::vector<Eigen::Vector2d> centroid_list) const {
-			int nearest_index = -1;
-			double min_distance = std::numeric_limits<double>::max();
+			// Evaluate the 3 nearest obstacles
+			std::vector<int> nearest_indices = getNearestObstacleIndices(q, obs_centroid, 3);
+			for (int idx : nearest_indices) {
+				double distance_to_obstacle = (obs_centroid[idx] - q).norm();
+				double outer_radius = obs_radii[idx] + 0.5; // Narrower radius
 
-			for (size_t i = 0; i < centroid_list.size(); ++i) {
-				double distance = (centroid_list[i] - pos).norm();
-				if (distance < min_distance) {
-					min_distance = distance;
-					nearest_index = i;
+				if (distance_to_obstacle < outer_radius) {
+					double repulsive_distance = outer_radius - distance_to_obstacle;
+					U_rep += 50 * repulsive_distance * (q - obs_centroid[idx]) / distance_to_obstacle; // Stronger gradient of the repulsive term
 				}
 			}
-			return nearest_index;
+
+			return Eigen::Vector2d(2 * U_attr[0] - U_rep[0], 2 * U_attr[1] - U_rep[1]);
 		}
-		// helper function to get centroid of an obstacle
-		Eigen::Vector2d obstacleCentroid(const amp::Obstacle2D& obs){
+
+		// Helper function to return the indices of the nearest obstacles within the arrays of radii and centroid
+		std::vector<int> getNearestObstacleIndices(Eigen::Vector2d pos, std::vector<Eigen::Vector2d> centroid_list, int k) const {
+			std::vector<std::pair<double, int>> distances;
+			for (size_t i = 0; i < centroid_list.size(); ++i) {
+				double distance = (centroid_list[i] - pos).norm();
+				distances.push_back(std::make_pair(distance, i));
+			}
+			std::sort(distances.begin(), distances.end());
+
+			std::vector<int> nearest_indices;
+			for (int i = 0; i < std::min(k, static_cast<int>(distances.size())); ++i) {
+				nearest_indices.push_back(distances[i].second);
+			}
+			return nearest_indices;
+		}
+
+		// Helper function to get centroid of an obstacle
+		Eigen::Vector2d obstacleCentroid(const amp::Obstacle2D& obs) {
 			double cumsumx = 0;
 			double cumsumy = 0;
 			int n = 0;
-			for (Eigen::Vector2d vtx : obs.verticesCCW()){
-				cumsumx+=vtx[0];
-				cumsumy+=vtx[1];
+			for (Eigen::Vector2d vtx : obs.verticesCCW()) {
+				cumsumx += vtx[0];
+				cumsumy += vtx[1];
 				n++;
 			}
-			return Eigen::Vector2d(cumsumx/n, cumsumy/n);
+			return Eigen::Vector2d(cumsumx / n, cumsumy / n);
 		}
-		// helper function to get max radii of an obstacle
-		double obstacleRadii(const amp::Obstacle2D& obs, const Eigen::Vector2d& centroid ){
-			double maxDist = 0;			// initialize distance counter
-			for (Eigen::Vector2d vtx : obs.verticesCCW()){
-				if (maxDist<((vtx-centroid).norm())){	
-					maxDist = (vtx-centroid).norm();		// set circle radius to maximum vertex distance
+
+		// Helper function to get max radii of an obstacle
+		double obstacleRadii(const amp::Obstacle2D& obs, const Eigen::Vector2d& centroid) {
+			double maxDist = 0; // initialize distance counter
+			for (Eigen::Vector2d vtx : obs.verticesCCW()) {
+				if (maxDist < ((vtx - centroid).norm())) {
+					maxDist = (vtx - centroid).norm(); // set circle radius to maximum vertex distance
 				}
 			}
 			return maxDist;
 		}
 
-    private:
-        const amp::Problem2D& problem;   // store the problem structure
+	private:
+		const amp::Problem2D& problem; // store the problem structure
 		std::vector<Eigen::Vector2d> obs_centroid; // store center of obstacle avoidance circles
-		std::vector<double> obs_radii;				// store obstacle radii 
+		std::vector<double> obs_radii; // store obstacle radii 
 };
