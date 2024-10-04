@@ -4,23 +4,23 @@
 amp::Path2D MyGDAlgorithm::plan(const amp::Problem2D& problem) {
     std::default_random_engine rgen;
     std::uniform_real_distribution<double> perturb(-1,1);    
-    double max_n = 10000;
-    double alpha = 0.4; // Momentum factor
-    double stepsize = 0.5e-3;
+    double max_n = 100000;
+    double alpha = 0.15; // Momentum factor
+    double stepsize = 0.1e-2;
     Eigen::Vector2d prev_step = Eigen::Vector2d::Zero();
     
     // initialize path
     amp::Path2D path;
-    path.waypoints.push_back(problem.q_init);
     // initialize potential function
+    path.waypoints.push_back(problem.q_init);
     MyPotentialFunction f(problem);
     // runtime loop, max iter max_n
     for (int n = 0; n < max_n; n++) { 
         Eigen::Vector2d pos = path.waypoints.back();
         // evaluate the gradient of the potential function at previous waypoint
-        Eigen::Vector2d del = f.gradient(pos)*stepsize;
+        Eigen::Vector2d del = f.getGradient(pos)*stepsize;
         if (del.norm()<1e-5){   // perturb if stuck
-            del += Eigen::Vector2d(perturb(rgen), perturb(rgen))*10*stepsize;
+            del += Eigen::Vector2d(perturb(rgen), perturb(rgen))*55*stepsize;
         }
         // sum momentum term
         Eigen::Vector2d step = del + alpha * prev_step;
