@@ -416,9 +416,9 @@ void amp::Visualizer::createAxes(const PotentialFunction2D& potential_function, 
     std::unique_ptr<ampprivate::pybridge::PythonObject> u2_values_arg = ampprivate::pybridge::makeList(std::move(u2_values));
 
     // Call Python function to visualize
-    ampprivate::pybridge::ScriptCaller::call("VisualizePotentialFunction", "visualize_vector_field", std::make_tuple(bounds_arg->get(), n_grid_arg->get(), u1_values_arg->get(), u2_values_arg->get()));
+    //ampprivate::pybridge::ScriptCaller::call("VisualizePotentialFunction", "visualize_vector_field", std::make_tuple(bounds_arg->get(), n_grid_arg->get(), u1_values_arg->get(), u2_values_arg->get()));
     // newFigure();
-    // ampprivate::pybridge::ScriptCaller::call("VisualizePotentialFunction", "visualize_potential_function", std::make_tuple(bounds_arg->get(), n_grid_arg->get(), u_values_arg->get()));
+     ampprivate::pybridge::ScriptCaller::call("VisualizePotentialFunction", "visualize_potential_function", std::make_tuple(bounds_arg->get(), n_grid_arg->get(), u_values_arg->get()));
 }
 
 void amp::Visualizer::makeBoxPlot(const std::list<std::vector<double>>& data_sets, const std::vector<std::string>& labels, const std::string& title, const std::string& xlabel, const std::string& ylabel) {

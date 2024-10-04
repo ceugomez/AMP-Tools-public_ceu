@@ -5,8 +5,8 @@ amp::Path2D MyGDAlgorithm::plan(const amp::Problem2D& problem) {
     std::default_random_engine rgen;
     std::uniform_real_distribution<double> perturb(-1,1);    
     double max_n = 100000;
-    double alpha = 0.15; // Momentum factor
-    double stepsize = 0.1e-2;
+    double alpha = 0.0; // Momentum factor
+    double stepsize = 0.5e-2;
     Eigen::Vector2d prev_step = Eigen::Vector2d::Zero();
     
     // initialize path

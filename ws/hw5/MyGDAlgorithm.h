@@ -53,7 +53,7 @@ public:
     Eigen::Vector2d gradient(const Eigen::Vector2d& q) const {
         Eigen::Vector2d diff = q - problem.q_goal; 
         // attractive gradient 
-        Eigen::Vector2d U_attr = Eigen::Vector2d(zeta*1.5*diff[0], zeta*diff[1]);
+        Eigen::Vector2d U_attr = Eigen::Vector2d(zeta*diff[0], zeta*diff[1]);
         // repulsive gradient 
         Eigen::Vector2d U_rep = Eigen::Vector2d::Zero();
         for (const amp::Obstacle2D& obs : problem.obstacles) {
@@ -62,7 +62,7 @@ public:
             double dist = (closePoint - q).norm();
             if (dist < Q_star) {
                 Eigen::Vector2d distVec = closePoint - q;
-				Eigen::Vector2d closestVtx = getClosestVertex(obs, q);
+				Eigen::Vector2d closestVtx = obstacleCentroid(obs);
 				U_rep += eta * (1.0 / dist - 1.0 / Q_star) * distVec / (dist * dist * dist); // repulsive gradient
 				U_rep += eta * (1.0/(q-closestVtx).norm() - 1.0/Q_star)*(q-closestVtx)/(q-closestVtx).squaredNorm();
             }
@@ -129,7 +129,7 @@ private:
     std::vector<Eigen::Vector2d> obs_centroid; // store center of obstacle avoidance circles
     // repulsive tuning parameters 
     double eta = 3.5; // 
-    double Q_star = 0.35; // consider obstacles with radius closer than this point
+    double Q_star = 0.45; // consider obstacles with radius closer than this point
     // attractive tuning parameters
     double zeta = 0.5;
 };

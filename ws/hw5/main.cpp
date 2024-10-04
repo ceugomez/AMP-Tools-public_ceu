@@ -17,25 +17,25 @@ int main(int argc, char** argv) {
     amp::Path2D path;
     amp::Problem2D prob;
     bool success = HW5::generateAndCheck(algo, path, prob);
-    amp::Visualizer::makeFigure(MyPotentialFunction(prob), prob,20);
-    Visualizer::makeFigure(prob, path); 
+    amp::Visualizer::makeFigure(MyPotentialFunction(prob), prob,50, false);
+    //Visualizer::makeFigure(prob, path); 
     Visualizer::showFigures();
     // Part a --------------------------------------------------------------------------------
         //visualize 2-d environment 
-        prob =  HW5::getWorkspace1();
-        path = algo.plan(prob);
-        Visualizer::makeFigure(prob, path); 
+        //prob =  HW5::getWorkspace1();
+        //path = algo.plan(prob);
+        //Visualizer::makeFigure(prob, path); 
         // Visualize your potential function
-        amp::Visualizer::makeFigure(MyPotentialFunction(prob), prob,20);
-        LOG("Path Length - Part A");
-        LOG(path.length());
+        //amp::Visualizer::makeFigure(MyPotentialFunction(prob), prob,20);
+        //LOG("Path Length - Part A");
+        //LOG(path.length());
         //Visualizer::showFigures();
     // Part b --------------------------------------------------------------------------------
-        prob = HW2::getWorkspace1();
-        path = algo.plan(prob);
-        Visualizer::makeFigure(prob, path);
+        //prob = HW2::getWorkspace1();
+        //path = algo.plan(prob);
+        //Visualizer::makeFigure(prob, path);
         //amp::Visualizer::makeFigure(MyPotentialFunction(prob), prob, 20);
-        Visualizer::showFigures();
+        //Visualizer::showFigures();
 
 
 
