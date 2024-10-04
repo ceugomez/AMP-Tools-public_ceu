@@ -17,25 +17,33 @@ int main(int argc, char** argv) {
     amp::Path2D path;
     amp::Problem2D prob;
     bool success = HW5::generateAndCheck(algo, path, prob);
-    amp::Visualizer::makeFigure(MyPotentialFunction(prob), prob,50, false);
+    //amp::Visualizer::makeFigure(MyPotentialFunction(prob), prob,50, false);
     //Visualizer::makeFigure(prob, path); 
-    Visualizer::showFigures();
+    //Visualizer::showFigures();
     // Part a --------------------------------------------------------------------------------
         //visualize 2-d environment 
-        //prob =  HW5::getWorkspace1();
-        //path = algo.plan(prob);
-        //Visualizer::makeFigure(prob, path); 
+        prob =  HW5::getWorkspace1();
+        path = algo.plan(prob);
+        Visualizer::makeFigure(prob, path); 
         // Visualize your potential function
-        //amp::Visualizer::makeFigure(MyPotentialFunction(prob), prob,20);
-        //LOG("Path Length - Part A");
-        //LOG(path.length());
-        //Visualizer::showFigures();
+        amp::Visualizer::makeFigure(MyPotentialFunction(prob), prob,50, false);
+        LOG("Path Length - Part A");
+        LOG(path.length());
     // Part b --------------------------------------------------------------------------------
-        //prob = HW2::getWorkspace1();
-        //path = algo.plan(prob);
-        //Visualizer::makeFigure(prob, path);
-        //amp::Visualizer::makeFigure(MyPotentialFunction(prob), prob, 20);
-        //Visualizer::showFigures();
+        prob = HW2::getWorkspace1();
+        path = algo.plan(prob);
+        LOG("Path Length - Part b-i");
+        LOG(path.length());
+        Visualizer::makeFigure(prob, path);
+        amp::Visualizer::makeFigure(MyPotentialFunction(prob), prob, 50, false);
+        prob = HW2::getWorkspace2();
+        path = algo.plan(prob);
+        LOG("Path Length - Part b-ii");
+        LOG(path.length());
+        Visualizer::makeFigure(prob, path);
+        amp::Visualizer::makeFigure(MyPotentialFunction(prob), prob, 50, false);
+        Visualizer::showFigures();
+
 
 
 
