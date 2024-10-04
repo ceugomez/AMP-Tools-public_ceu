@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
         path = algo.plan(prob);
         Visualizer::makeFigure(prob, path);
         amp::Visualizer::makeFigure(MyPotentialFunction(prob),prob.x_min, prob.x_max, prob.y_min, prob.y_max, 30);
-        //Visualizer::showFigures();
+        Visualizer::showFigures();
 
 
 
