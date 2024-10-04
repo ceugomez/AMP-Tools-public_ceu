@@ -39,18 +39,18 @@ class MyPotentialFunction : public amp::PotentialFunction2D {
 			double U_rep = 0.0;
 			// Attractive parabola centered on goal point
 			
-			double U_attr = diff[0] * diff[0] + diff[1] * diff[1]; // (x - goal_x)^2 + (y - goal_y)^2
+			double U_attr = diff.squaredNorm(); // (x - goal_x)^2 + (y - goal_y)^2
 			// build repulsive parabola centered on obstacle circles
 			// Evaluate the 3 nearest obstacles
-			std::vector<int> nearest_indices = getNearestObstacleIndices(q, obs_centroid, 3);
+			std::vector<int> nearest_indices = getNearestObstacleIndices(q, obs_centroid, considerobs);
 			for (int idx : nearest_indices) {
 				double distance_to_obstacle = (obs_centroid[idx] - q).norm();
-				double outer_radius = obs_radii[idx] + 0.4; // Narrower radius
+				double outer_radius = obs_radii[idx] + Q_star; // Narrower radius
 
 				// Build repulsive force function
 				if (distance_to_obstacle < outer_radius) {
 					double repulsive_distance = outer_radius - distance_to_obstacle;
-					U_rep += 10 * repulsive_distance * repulsive_distance; // Stronger quadratic repulsive term
+					U_rep += zeta * repulsive_distance * repulsive_distance; // Stronger quadratic repulsive term
 				}
 			}
 
@@ -58,24 +58,26 @@ class MyPotentialFunction : public amp::PotentialFunction2D {
 			return fnval;
 		}
 
+
 		// Returns potential function gradient for a given point
 		Eigen::Vector2d gradient(const Eigen::Vector2d& q) {
-			Eigen::Vector2d U_attr = q - problem.q_goal;
-			Eigen::Vector2d U_rep = Eigen::Vector2d::Zero();
+			Eigen::Vector2d diff = q-problem.q_goal; 
+			// attractive gradient 
+				Eigen::Vector2d U_attr = zeta*diff;
+			// repulsive gradient 
+				Eigen::Vector2d U_rep = Eigen::Vector2d::Zero();
+				std::vector<int> nearest_indices = getNearestObstacleIndices(q, obs_centroid, considerobs);	// evaluate 3 nearest obstacles
+				for (int idx : nearest_indices) {
+					double distance_to_obstacle = (obs_centroid[idx] - q).norm();
+					double outer_radius = obs_radii[idx] + Q_star; // Narrower radius
 
-			// Evaluate the 3 nearest obstacles
-			std::vector<int> nearest_indices = getNearestObstacleIndices(q, obs_centroid, 3);
-			for (int idx : nearest_indices) {
-				double distance_to_obstacle = (obs_centroid[idx] - q).norm();
-				double outer_radius = obs_radii[idx] + 0.4; // Narrower radius
-
-				if (distance_to_obstacle < outer_radius) {
-					double repulsive_distance = outer_radius - distance_to_obstacle;
-					U_rep += 20 * repulsive_distance * (q - obs_centroid[idx]) / distance_to_obstacle; // Stronger gradient of the repulsive term
+					if (distance_to_obstacle < outer_radius) {
+						double repulsive_distance = outer_radius - distance_to_obstacle;
+						U_rep += eta * repulsive_distance * (q - obs_centroid[idx]) / distance_to_obstacle; 
+					}
 				}
-			}
 
-			return Eigen::Vector2d(2 * U_attr[0] - U_rep[0], 2 * U_attr[1] - U_rep[1]);
+			return U_attr-U_rep;
 		}
 		// Helper function to return the indices of the nearest obstacles within the arrays of radii and centroid
 		std::vector<int> getNearestObstacleIndices(Eigen::Vector2d pos, std::vector<Eigen::Vector2d> centroid_list, int k) const {
@@ -118,4 +120,11 @@ class MyPotentialFunction : public amp::PotentialFunction2D {
 		const amp::Problem2D& problem; // store the problem structure
 		std::vector<Eigen::Vector2d> obs_centroid; // store center of obstacle avoidance circles
 		std::vector<double> obs_radii; // store obstacle radii 
+		// repulsive tuning parameters 
+		int considerobs = 5;
+		double eta = 45.0;		// 
+		double Q_star = 0.33;	// consider obstacles with radius closer than this point
+		// attractive tuning parameters
+		double zeta = 3.0;
+
 };

@@ -4,9 +4,9 @@
 amp::Path2D MyGDAlgorithm::plan(const amp::Problem2D& problem) {
     std::default_random_engine rgen;
     std::uniform_real_distribution<double> perturb(-1,1);    
-    double max_n = 2500;
-    double alpha = 0.1; // Momentum factor
-    double stepsize = 0.75e-2;
+    double max_n = 10000;
+    double alpha = 0.4; // Momentum factor
+    double stepsize = 0.5e-3;
     Eigen::Vector2d prev_step = Eigen::Vector2d::Zero();
     
     // initialize path
@@ -44,6 +44,5 @@ amp::Path2D MyGDAlgorithm::plan(const amp::Problem2D& problem) {
 // end condition
 bool MyGDAlgorithm::checkEnd(const Eigen::Vector2d& pos, const Eigen::Vector2d& goal){
     Eigen::Vector2d dist = (pos-goal);
-    return((dist.norm()<0.1));
+    return((dist.norm()<0.25));
 }
-
