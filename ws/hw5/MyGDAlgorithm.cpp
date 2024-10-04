@@ -6,9 +6,8 @@ amp::Path2D MyGDAlgorithm::plan(const amp::Problem2D& problem) {
     std::uniform_real_distribution<double> perturb(-1,1);    
     double max_n = 10000;
     double alpha = 0.4; // Momentum factor
-    double stepsize = 0.5e-3;
+    double stepsize = 0.6e-3;
     Eigen::Vector2d prev_step = Eigen::Vector2d::Zero();
-    
     // initialize path
     amp::Path2D path;
     path.waypoints.push_back(problem.q_init);

@@ -30,11 +30,11 @@ int main(int argc, char** argv) {
         path = algo.plan(prob);
         Visualizer::makeFigure(prob, path);
         amp::Visualizer::makeFigure(MyPotentialFunction(prob),prob.x_min, prob.x_max, prob.y_min, prob.y_max, 30);
-        Visualizer::showFigures();
+        //Visualizer::showFigures();
 
 
 
     // Arguments following argv correspond to the constructor arguments of MyGDAlgorithm:
-    HW5::grade<MyGDAlgorithm>("ceu.gomez-faulk@colorado.edu", argc, argv, 1.0, 1.0, 1.0, 1.0);
+    //HW5::grade<MyGDAlgorithm>("ceu.gomez-faulk@colorado.edu", argc, argv, 1.0, 1.0, 1.0, 1.0);
     return 0;
 }
