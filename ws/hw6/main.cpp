@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
     amp::RNG::seed(amp::RNG::randiUnbounded());
 
     // You will need your 2-link manipulator from HW4
-    MyManipulator2D manipulator;
+    MyManipulator2D manipulator();
     Problem2D point_problem = HW2::getWorkspace1();
     Problem2D manip_problem = HW6::getHW4Problem2();
     
@@ -49,6 +49,6 @@ int main(int argc, char** argv) {
 
     Visualizer::showFigures();
 
-    amp::HW6::grade<PointWaveFrontAlgorithm, ManipulatorWaveFrontAlgorithm, MyAStarAlgo>("nonhuman.biologic@myspace.edu", argc, argv, std::make_tuple(wf_algo, point_agent_ctor), std::make_tuple(wf_algo, manipulator_ctor), std::make_tuple());
+    //amp::HW6::grade<PointWaveFrontAlgorithm, ManipulatorWaveFrontAlgorithm, MyAStarAlgo>("nonhuman.biologic@myspace.edu", argc, argv, std::make_tuple(wf_algo, point_agent_ctor), std::make_tuple(wf_algo, manipulator_ctor), std::make_tuple());
     return 0;
 }
