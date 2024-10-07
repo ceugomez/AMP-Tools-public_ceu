@@ -53,4 +53,8 @@ def visualize_vector_field(bounds: list, n_grid: int, u1_values: list, u2_values
     ax.set_xlim(bounds[0], bounds[1])
     ax.set_ylim(bounds[2], bounds[3])
     ax.set_aspect("equal")
+<<<<<<< HEAD
     ax.set_title('2D Vector Field')
+=======
+    ax.set_title('2D Vector Field')
+>>>>>>> upstream/main

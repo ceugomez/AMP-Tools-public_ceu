@@ -14,8 +14,8 @@ int main(int argc, char** argv) {
     amp::RNG::seed(amp::RNG::randiUnbounded());
     // Test your gradient descent algorithm on a random problem.
     MyGDAlgorithm algo(1.0, 1.0, 1.0, 1.0);
-    amp::Path2D path;
-    amp::Problem2D prob;
+    Path2D path;
+    Problem2D prob;
     bool success = HW5::generateAndCheck(algo, path, prob);
     //amp::Visualizer::makeFigure(MyPotentialFunction(prob), prob,50, false);
     //Visualizer::makeFigure(prob, path); 
@@ -47,6 +47,13 @@ int main(int argc, char** argv) {
 
 
 
+<<<<<<< HEAD
+=======
+    // Visualize your potential function
+    Visualizer::makeFigure(MyPotentialFunction{}, prob, 30);
+    Visualizer::showFigures();
+    
+>>>>>>> upstream/main
     // Arguments following argv correspond to the constructor arguments of MyGDAlgorithm:
     //HW5::grade<MyGDAlgorithm>("ceu.gomez-faulk@colorado.edu", argc, argv, 1.0, 1.0, 1.0, 1.0);
     return 0;

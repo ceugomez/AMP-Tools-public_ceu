@@ -46,6 +46,7 @@ public:
             }
 			
         }
+<<<<<<< HEAD
         fnval = U_attr + U_rep;
         return fnval;
     }
@@ -133,3 +134,10 @@ private:
     // attractive tuning parameters
     double zeta = 0.5;
 };
+=======
+
+		virtual Eigen::Vector2d getGradient(const Eigen::Vector2d& q) const override {
+            return Eigen::Vector2d(q[0] * q[0],  q[1] * q[1]);
+        }
+};
+>>>>>>> upstream/main
