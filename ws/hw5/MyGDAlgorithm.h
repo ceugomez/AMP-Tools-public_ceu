@@ -38,7 +38,7 @@ public:
         // Attractive parabola centered on goal point
         double U_attr = diff.squaredNorm(); // (x - goal_x)^2 + (y - goal_y)^2
         for (const amp::Obstacle2D& obs : problem.obstacles) {
-            // for every obstacle
+            // for every obstacleF
             Eigen::Vector2d closePoint = closestPointOnEdge(obs, q); // get closest point
             double dist = (closePoint - q).norm();
             if (dist < Q_star) {
@@ -46,7 +46,6 @@ public:
             }
 			
         }
-<<<<<<< HEAD
         fnval = U_attr + U_rep;
         return fnval;
     }
@@ -134,10 +133,3 @@ private:
     // attractive tuning parameters
     double zeta = 0.5;
 };
-=======
-
-		virtual Eigen::Vector2d getGradient(const Eigen::Vector2d& q) const override {
-            return Eigen::Vector2d(q[0] * q[0],  q[1] * q[1]);
-        }
-};
->>>>>>> upstream/main

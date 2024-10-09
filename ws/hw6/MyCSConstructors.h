@@ -7,10 +7,6 @@
 #include "hw/HW4.h"
 #include "hw/HW6.h"
 
-////////////////////// THIS IS FROM HW4 //////////////////////
-
-/* You can just move these classes to shared folder and include them instead of copying them to hw6 project*/
-
 // Derive the amp::GridCSpace2D class and override the missing method
 class MyGridCSpace2D : public amp::GridCSpace2D {
     public:
@@ -45,9 +41,9 @@ class MyPointAgentCSConstructor : public amp::PointAgentCSConstructor {
         // To make things easy, add the number of cells as a ctor param so you can easily play around with it
         MyPointAgentCSConstructor(std::size_t cells_per_dim) : m_cells_per_dim(cells_per_dim) {}
 
-        // Override this method for computing all of the boolean collision values for each cell in the cspace
         virtual std::unique_ptr<amp::GridCSpace2D> construct(const amp::Environment2D& env) override;
-
+        bool isPointInPolygon(const amp::Obstacle2D& obs, const Eigen::Vector2d& env);
+        double crossProduct(const Eigen::Vector2d& a, const Eigen::Vector2d& b);
     private:
         std::size_t m_cells_per_dim;
 };
