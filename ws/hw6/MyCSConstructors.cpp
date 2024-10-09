@@ -17,7 +17,6 @@ std::pair<std::size_t, std::size_t> MyGridCSpace2D::getCellFromPoint(double x0, 
     return {i,j};
 }
 
-
 // Override this method for computing all of the boolean collision values for each cell in the cspace
 std::unique_ptr<amp::GridCSpace2D> MyManipulatorCSConstructor::construct(const amp::LinkManipulator2D& manipulator, const amp::Environment2D& env) {
     // Create an object of my custom cspace type (e.g. MyGridCSpace2D) and store it in a unique pointer. 
@@ -51,7 +50,7 @@ std::unique_ptr<amp::GridCSpace2D> MyPointAgentCSConstructor::construct(const am
     std::cout << "Constructing C-space for point agent" << std::endl;
     // Determine if each cell is in collision or not, and store the values the cspace. This `()` operator comes from DenseArray base class
     // For every cell: check collision
-    double stepx, stepy; // get cell dimensions for each axis
+    double stepx, stepy;  // get cell dimensions for each axis
     stepx = (env.x_max-env.x_min)/m_cells_per_dim;
     stepy = (env.y_max-env.y_min)/m_cells_per_dim;
 
@@ -60,11 +59,11 @@ std::unique_ptr<amp::GridCSpace2D> MyPointAgentCSConstructor::construct(const am
         // iter through x dim
         for (int j=0; j<m_cells_per_dim; j++) {
             cspace(i,j) = false;
-            double x = stepx*i; double y = stepy*j;
+            double x = stepx*i+0.5*stepx; double y = stepy*j+0.5*stepy;   //centerpoint of each cell
             for (amp::Obstacle2D obstacle : env.obstacles){
                 // for every obstacle 
                 if (isPointInPolygon(obstacle,Eigen::Vector2d(x,y))){
-                    cspace(i,j=true);
+                    cspace(i,j) = true;
                     break;
                 }
             }
@@ -99,11 +98,18 @@ double MyPointAgentCSConstructor::crossProduct(const Eigen::Vector2d& a, const E
     return a.x() * b.y() - a.y() * b.x();
 }
 
-
 amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, const Eigen::Vector2d& q_goal, const amp::GridCSpace2D& grid_cspace, bool isManipulator) {
     // Implement your WaveFront algorithm here
     amp::Path2D path;
     path.waypoints.push_back(q_init);
+    // wavefront algorithm 
+    std::pair<int,int> goal_cell = getCellFromPoint(q_init[0], q_init[1]);
+    std::pair<int,int> start_cell = getCellFromPoint(q_goal[0], q_goal[1]); 
+    Eigen::MatrixXd AlgVal = 
+
+
+
+
     path.waypoints.push_back(q_goal);
     if (isManipulator) {
         Eigen::Vector2d bounds0 = Eigen::Vector2d(0.0, 0.0);
