@@ -6,6 +6,9 @@
 // Include the correct homework headers
 #include "hw/HW4.h"
 #include "hw/HW6.h"
+// include collision checkers and helper fns
+#include "../shared/HelperFns.h"
+#include "../shared/collisionCheckers.h"
 
 // Derive the amp::GridCSpace2D class and override the missing method
 class MyGridCSpace2D : public amp::GridCSpace2D {
@@ -21,7 +24,6 @@ class MyGridCSpace2D : public amp::GridCSpace2D {
 
 };
 
-
 // Derive the HW4 ManipulatorCSConstructor class and override the missing method
 class MyManipulatorCSConstructor : public amp::ManipulatorCSConstructor {
     public:
@@ -30,12 +32,9 @@ class MyManipulatorCSConstructor : public amp::ManipulatorCSConstructor {
 
         // Override this method for computing all of the boolean collision values for each cell in the cspace
         virtual std::unique_ptr<amp::GridCSpace2D> construct(const amp::LinkManipulator2D& manipulator, const amp::Environment2D& env) override;
-
     private:
         std::size_t m_cells_per_dim;
 };
-
-//////////////////////////////////////////////////////////////
 
 // Derive the PointAgentCSConstructor class and override the missing method
 class MyPointAgentCSConstructor : public amp::PointAgentCSConstructor {
@@ -44,8 +43,6 @@ class MyPointAgentCSConstructor : public amp::PointAgentCSConstructor {
         MyPointAgentCSConstructor(std::size_t cells_per_dim) : m_cells_per_dim(cells_per_dim) {}
 
         virtual std::unique_ptr<amp::GridCSpace2D> construct(const amp::Environment2D& env) override;
-        bool isPointInPolygon(const amp::Obstacle2D& obs, const Eigen::Vector2d& env);
-        double crossProduct(const Eigen::Vector2d& a, const Eigen::Vector2d& b);
     private:
         std::size_t m_cells_per_dim;
 };
@@ -53,6 +50,7 @@ class MyPointAgentCSConstructor : public amp::PointAgentCSConstructor {
 class MyWaveFrontAlgorithm : public amp::WaveFrontAlgorithm {
     public:
         virtual amp::Path2D planInCSpace(const Eigen::Vector2d& q_init, const Eigen::Vector2d& q_goal, const amp::GridCSpace2D& grid_cspace, bool isManipulator) override;
-
-};
+    private:
+        void addObstacleBuffer(amp::GridCSpace2D& grid_cspace, int buffer_size);
+};  
 
