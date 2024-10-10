@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
     Problem2D manip_problem3 = HW6::getHW4Problem3();
     
     // Construct point-agent and manipulator cspace instances.
-    std::size_t n_cells = 150;
+    std::size_t n_cells = 350;
     std::shared_ptr<MyPointAgentCSConstructor> point_agent_ctor = std::make_shared<MyPointAgentCSConstructor>(n_cells);
     std::shared_ptr<MyManipulatorCSConstructor> manipulator_ctor = std::make_shared<MyManipulatorCSConstructor>(n_cells);
     std::shared_ptr<WaveFrontAlgorithm> wf_algo = std::make_shared<MyWaveFrontAlgorithm>();
@@ -32,17 +32,17 @@ int main(int argc, char** argv) {
     // Combine your wavefront planner with a cspace object (you do not need to modify these classes).
     PointWaveFrontAlgorithm point_algo(wf_algo, point_agent_ctor);
     ManipulatorWaveFrontAlgorithm manip_algo(wf_algo, manipulator_ctor);
-/*
+
     // point problem 1
     Path2D path = point_algo.plan(point_problem);
-    Visualizer::makeFigure(point_problem, path); // Visualize path in workspace
-    Visualizer::makeFigure(*point_algo.getCSpace(), path); // Visualize path in cspace
+    //Visualizer::makeFigure(point_problem, path); // Visualize path in workspace
+    //Visualizer::makeFigure(*point_algo.getCSpace(), path); // Visualize path in cspace
 
     // point problem 2
     Path2D path2 = point_algo.plan(point_problem2);
     Visualizer::makeFigure(point_problem2, path2); // Visualize path in workspace
     Visualizer::makeFigure(*point_algo.getCSpace(), path2); // Visualize path in cspace
-    //path2.print();
+    path2.print();
 
     // manipulator problem 1
     ManipulatorTrajectory2Link trajectory = manip_algo.plan(manipulator, manip_problem);
@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
     //MyAStarAlgo::GraphSearchResult result = algo.search(problem, heuristic);
 
     Visualizer::showFigures();
-    */
+    
     amp::HW6::grade<PointWaveFrontAlgorithm, ManipulatorWaveFrontAlgorithm, MyAStarAlgo>("ceu.gomez-faulk@colorado.edu", argc, argv, std::make_tuple(wf_algo, point_agent_ctor), std::make_tuple(wf_algo, manipulator_ctor), std::make_tuple());
     return 0;
 }

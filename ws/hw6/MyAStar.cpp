@@ -8,9 +8,9 @@ MyAStarAlgo::GraphSearchResult MyAStarAlgo::search(const amp::ShortestPathProble
     std::cout << "Starting A* Graph Search: Init --> goal | " << problem.init_node << " --> " << problem.goal_node << std::endl;
         // build struct for node parameters
     struct NodeInfo {
-        double g_cost; // Cost from start to current node
-        double f_cost; // Estimated total cost (g_cost + heuristic)
-        int parent; // Previous node in the path
+        double g_cost; // cost from start to current node
+        double f_cost; // estimated total cost (g_cost + heuristic)
+        int parent;    // prior node
     };
     GraphSearchResult result = {false, {}, 0.0};    // init value result
     std::priority_queue<std::pair<double, int>, std::vector<std::pair<double, int>>, std::greater<>> open_set;  // no need to reinvent the wheel
@@ -45,7 +45,7 @@ MyAStarAlgo::GraphSearchResult MyAStarAlgo::search(const amp::ShortestPathProble
             int neighbor = neighbors[i];
             double cost = edges[i];
 
-            if (closed_set.count(neighbor)) continue; // Skip if already evaluated
+            if (closed_set.count(neighbor)) continue; // skip if already evaluated
 
             double tentative_g_cost = node_info[current_node].g_cost + cost;
             if (!node_info.count(neighbor) || tentative_g_cost < node_info[neighbor].g_cost) {

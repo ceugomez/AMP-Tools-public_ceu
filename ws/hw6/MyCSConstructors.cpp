@@ -1,6 +1,6 @@
 #include "MyCSConstructors.h"
 
-
+// rspace - > cspace
 std::pair<std::size_t, std::size_t> MyGridCSpace2D::getCellFromPoint(double x0, double x1) const {
     double x0min, x0max, x1min, x1max, delx0, delx1;
     std::size_t x0cell, x1cell;
@@ -28,7 +28,7 @@ std::pair<std::size_t, std::size_t> MyGridCSpace2D::getCellFromPoint(double x0, 
 
     return {i, j};
 }
-
+// cspace - > rspace
 std::pair<double, double> MyGridCSpace2D::getPointFromCell(int i, int j) const {
     double xmin, xmax, ymin, ymax;
     std::size_t x_cells, y_cells;
@@ -48,48 +48,28 @@ std::pair<double, double> MyGridCSpace2D::getPointFromCell(int i, int j) const {
     double y = j * stepy + ymin;
     return {x, y};
 }
-
+// build bool grid cspace for manipulator (buggy!)
 std::unique_ptr<amp::GridCSpace2D> MyManipulatorCSConstructor::construct(const amp::LinkManipulator2D& manipulator, const amp::Environment2D& env) {
     double pi = M_PI;
     auto cspace_ptr = std::make_unique<MyGridCSpace2D>(m_cells_per_dim, m_cells_per_dim, 0.0, 2*pi, 0.0, 2*pi);
     MyGridCSpace2D& cspace = *cspace_ptr;
-
     std::cout << "Constructing C-space for manipulator" << std::endl;
-
-    // Set all cells to false initially
-    for (std::size_t i = 0; i < m_cells_per_dim; ++i) {
-        for (std::size_t j = 0; j < m_cells_per_dim; ++j) {
+     for (int i = 0; i < m_cells_per_dim; ++i) {
+        for (int j = 0; j < m_cells_per_dim; ++j) {
             cspace(i, j) = false;
+            double x, y;
+            std::tie(x, y) = cspace.getPointFromCell(i, j);
+            for (const auto& obs : env.obstacles) {
+                if (collisionCheckers::isArmInCollision(obs, Eigen::Vector2d(x, y), manipulator)) {
+                    cspace(i, j) = true;
+                    break;
+                }
+            }
         }
     }
-
-    // Helper function to normalize values
-    auto normalize = [pi](double value) -> double {
-        double norm_value = fmod(value, 2 * pi);
-        if (norm_value < 0) norm_value += 2 * pi;
-        return norm_value;
-    };
-
-    // Iterate over all obstacles and set the corresponding cells to true
-    for (const auto& obs : env.obstacles) {
-        for (const auto& vertex : obs.verticesCCW()) {
-            double x = normalize(vertex.x());
-            double y = normalize(vertex.y());
-            if (x<0){
-                LOG("yes");
-            }
-            auto [cell_x, cell_y] = cspace.getCellFromPoint(x, y);
-            if (cell_x < m_cells_per_dim && cell_y < m_cells_per_dim) {
-                cspace(cell_x, cell_y) = true;
-            }
-
-        }
-    }
-
     return cspace_ptr;
 }
-
-// build bool cspace for point 2d 
+// build bool grid cspace for point 2d (not buggy)
 std::unique_ptr<amp::GridCSpace2D> MyPointAgentCSConstructor::construct(const amp::Environment2D& env) {
     // Create an object of my custom cspace type (e.g. MyGridCSpace2D) and store it in a unique pointer. 
     // Pass the constructor parameters to std::make_unique()
@@ -124,7 +104,7 @@ std::unique_ptr<amp::GridCSpace2D> MyPointAgentCSConstructor::construct(const am
     // The reason why this works is not super important for our purposes, but if you are curious, look up polymorphism!
     return cspace_ptr;
 }
-
+// do wavefront
 void MyWaveFrontAlgorithm::addObstacleBuffer(amp::GridCSpace2D& grid_cspace, int buffer_size) {
     auto size = grid_cspace.size();
     std::vector<std::vector<int>> buffer_map(size.first, std::vector<int>(size.second, 0));
@@ -153,48 +133,58 @@ void MyWaveFrontAlgorithm::addObstacleBuffer(amp::GridCSpace2D& grid_cspace, int
         }
     }
 }
-
+// wavefront planner
 amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, const Eigen::Vector2d& q_goal, const amp::GridCSpace2D& grid_cspace, bool isManipulator) {
     amp::Path2D path;
     path.waypoints.push_back(q_init);
-std::pair<int, int> start_cell;
-std::pair<int, int> goal_cell;
+    // make it so I can modify start and goal 
+    std::pair<int, int> start_cell;
+    std::pair<int, int> goal_cell;
+    // naive catch implementation
+    try {
+        start_cell = grid_cspace.getCellFromPoint(q_init[0], q_init[1]);
+        goal_cell = grid_cspace.getCellFromPoint(q_goal[0], q_goal[1]);
 
-try {
-    start_cell = grid_cspace.getCellFromPoint(q_init[0], q_init[1]);
-    goal_cell = grid_cspace.getCellFromPoint(q_goal[0], q_goal[1]);
-
-    if (goal_cell.first < 0 || goal_cell.second < 0) {
-        throw std::out_of_range("Goal cell is out of valid range");
-    }
-    if (start_cell.first<0 || start_cell.first<0){
-        throw std::out_of_range("Start cell is out of valid range");
-    }
+        if (goal_cell.first < 0 || goal_cell.second < 0) {
+            throw std::out_of_range("Goal cell is out of valid range");
+        }
+        if (start_cell.first<0 || start_cell.first<0){
+            throw std::out_of_range("Start cell is out of valid range");
+        }
     } catch (const std::out_of_range& e) {
         std::cerr << "Error: " << e.what() << std::endl;
-        // Handle the error, possibly by returning an empty path or an error code
+        if(start_cell.first<0){
+            start_cell.first += 2*M_PI;
+        }        
+        if(start_cell.second<0){
+            start_cell.second += 2*M_PI;
+        }
+        if(goal_cell.first<0){
+            goal_cell.first += 2*M_PI;
+        }
+        if(goal_cell.second<0){
+            goal_cell.second += 2*M_PI;
+        }
     }
 
 
-    // Cast grid_cspace to MyGridCSpace2D
+    // cast buffered grid
     auto* buffered_grid_ptr = dynamic_cast<const MyGridCSpace2D*>(&grid_cspace);
     if (!buffered_grid_ptr) {
         std::cerr << "Error: grid_cspace is not of type MyGridCSpace2D\n";
         return path;
     }
-
+    // add obstacle buffers
     MyGridCSpace2D buffered_grid = *buffered_grid_ptr;
-
-    addObstacleBuffer(buffered_grid, 3); // Add 3-cell buffer
-
+    addObstacleBuffer(buffered_grid, 3); 
     std::vector<std::vector<int>> wavefront(buffered_grid.size().first, std::vector<int>(buffered_grid.size().second, -1));
     wavefront[goal_cell.first][goal_cell.second] = 0;
 
-    // Move along wavefront
+    // do the wave _-_____-_____-_____---_____-----___ woah
     std::queue<std::pair<int, int>> q;
     q.push(goal_cell);
     std::vector<std::pair<int, int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-
+    // while there are still nodes to check 
     while (!q.empty()) {
         auto cell = q.front();
         q.pop();
@@ -210,7 +200,7 @@ try {
         }
     }
 
-    // Retrace path
+    // rebuild path 
     std::pair<int, int> current_cell = start_cell;
     while (current_cell != goal_cell) {
         int min_dist = wavefront[current_cell.first][current_cell.second];
@@ -226,7 +216,7 @@ try {
         }
 
         if (next_cell == current_cell) {
-            break;  // No path found
+            break;  // no way to get there!
         }
 
         current_cell = next_cell;

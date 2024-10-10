@@ -9,12 +9,14 @@
 // include collision checkers and helper fns
 #include "../shared/HelperFns.h"
 #include "../shared/collisionCheckers.h"
+#include <queue>
+
 
 // Derive the amp::GridCSpace2D class and override the missing method
 class MyGridCSpace2D : public amp::GridCSpace2D {
     public:
         MyGridCSpace2D(std::size_t x0_cells, std::size_t x1_cells, double x0_min, double x0_max, double x1_min, double x1_max)
-            : amp::GridCSpace2D(x0_cells, x1_cells, x0_min, x0_max, x1_min, x1_max) // Call base class constructor
+            : amp::GridCSpace2D(x0_cells, x1_cells, x0_min, x0_max, x1_min, x1_max) // call base class constructor
         {}
 
         // rspace-> cspace
