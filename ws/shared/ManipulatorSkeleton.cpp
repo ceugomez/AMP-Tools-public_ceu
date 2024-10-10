@@ -30,8 +30,8 @@ amp::ManipulatorState MyManipulator2D::getConfigurationFromIK(const Eigen::Vecto
     
     joint_angles.setZero(nLinks());      
     // least-squares formulation of inverse kinematics for n-link planar manipulator
-    const double tolerance = 1e-3; 
-    const int max_iterations = 5000;
+    const double tolerance = 1e-5; 
+    const int max_iterations = 50000;
     Eigen::Vector2d current_position;
     Eigen::MatrixXd jacobian;
     Eigen::VectorXd delta_q;

@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
     Problem2D manip_problem3 = HW6::getHW4Problem3();
     
     // Construct point-agent and manipulator cspace instances.
-    std::size_t n_cells = 75;
+    std::size_t n_cells = 150;
     std::shared_ptr<MyPointAgentCSConstructor> point_agent_ctor = std::make_shared<MyPointAgentCSConstructor>(n_cells);
     std::shared_ptr<MyManipulatorCSConstructor> manipulator_ctor = std::make_shared<MyManipulatorCSConstructor>(n_cells);
     std::shared_ptr<WaveFrontAlgorithm> wf_algo = std::make_shared<MyWaveFrontAlgorithm>();
