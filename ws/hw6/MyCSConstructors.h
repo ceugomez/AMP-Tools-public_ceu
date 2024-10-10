@@ -14,8 +14,10 @@ class MyGridCSpace2D : public amp::GridCSpace2D {
             : amp::GridCSpace2D(x0_cells, x1_cells, x0_min, x0_max, x1_min, x1_max) // Call base class constructor
         {}
 
-        // Override this method for determining which cell a continuous point belongs to
+        // rspace-> cspace
         virtual std::pair<std::size_t, std::size_t> getCellFromPoint(double x0, double x1) const override;
+        // cspace -> rspace
+        virtual std::pair<double,double> getPointFromCell(int i, int j) const override;
 
 };
 

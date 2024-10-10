@@ -146,13 +146,20 @@ class GridCSpace2D : public ConfigurationSpace2D, public DenseArray2D<bool> {
             , DenseArray2D<bool>(x0_cells, x1_cells)
             {}
 
-        /******* User Implemented Methods ********/
         
         /// @brief Given a point in continuous space that is between the bounds, determine what cell (i, j) that the point is in
         /// @param x0 Value of the first configuration space variable
         /// @param x1 Value of the second configuration space variable
         /// @return A pair (i, j) of indices that correspond to the cell that (x0, x1) is in
         virtual std::pair<std::size_t, std::size_t> getCellFromPoint(double x0, double x1) const = 0;
+
+        /// @brief Given a point in cspace that is between the bounds, determine what continuous space (x, y) that the point is in
+        /// @param i index in cspace x0 axis
+        /// @param x1 index in cspace x1 axis
+        /// @return double x, double y
+
+        virtual std::pair<double,double> getPointFromCell(int i, int j) const = 0;;
+        
 
         /*****************************************/
 
