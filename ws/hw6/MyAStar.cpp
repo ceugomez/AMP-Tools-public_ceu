@@ -6,6 +6,7 @@
 // Implement the search method for the A* algorithm
 MyAStarAlgo::GraphSearchResult MyAStarAlgo::search(const amp::ShortestPathProblem& problem, const amp::SearchHeuristic& heuristic) {
     std::cout << "Starting A* Graph Search: Init --> goal | " << problem.init_node << " --> " << problem.goal_node << std::endl;
+        int iterations = 0;
         // build struct for node parameters
     struct NodeInfo {
         double g_cost; // cost from start to current node
@@ -17,10 +18,12 @@ MyAStarAlgo::GraphSearchResult MyAStarAlgo::search(const amp::ShortestPathProble
     std::unordered_map<int, NodeInfo> node_info;    // same deal
     std::unordered_set<int> closed_set;             // nodes already checked
     // init start node
-    open_set.push({0.0, problem.init_node});        // push init node to 
-    node_info[problem.init_node] = {0.0, heuristic(problem.init_node), -1};
-    //
+    open_set.push({0.0, problem.init_node});        // push init node to open set
+    //node_info[problem.init_node] = {0.0, heuristic(problem.init_node), -1}; // evaluate heuristic (A*)
+    node_info[problem.init_node] = {0.0,0.0,-1};                            // Djikstra's algo
+
     while (!open_set.empty()) {                     // loop until we've evaluated all nodes
+        iterations+=1;    LOG(iterations);
         auto [current_f_cost, current_node] = open_set.top();
         open_set.pop();
         // if we made it to goal, reconstruct path
@@ -49,12 +52,13 @@ MyAStarAlgo::GraphSearchResult MyAStarAlgo::search(const amp::ShortestPathProble
 
             double tentative_g_cost = node_info[current_node].g_cost + cost;
             if (!node_info.count(neighbor) || tentative_g_cost < node_info[neighbor].g_cost) {
-                node_info[neighbor] = {tentative_g_cost, tentative_g_cost + heuristic(neighbor), current_node};
+                //node_info[neighbor] = {tentative_g_cost, tentative_g_cost + heuristic(neighbor), current_node}; // A*
+                node_info[neighbor] = {tentative_g_cost, tentative_g_cost, current_node}; // Djikstra's
                 open_set.push({node_info[neighbor].f_cost, neighbor});
             }
         }
-    }
 
+    }
     result.print();
     return result; // if goal unreachable, catch it */
 }

@@ -17,8 +17,8 @@ std::pair<std::size_t, std::size_t> MyGridCSpace2D::getCellFromPoint(double x0, 
 
     // Check for valid range
     if (x0dist < 0 || x0dist >= (x0max - x0min) || x1dist < 0 || x1dist >= (x1max - x1min)) {
-        LOG(x0);
-        LOG(x1);
+        //LOG(x0);
+        //LOG(x1);
         throw std::out_of_range("Rspace point is outside bounds");
     }
 
