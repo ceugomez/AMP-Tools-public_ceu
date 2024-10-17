@@ -65,8 +65,8 @@ int main(int argc, char** argv) {
     MyAStarAlgo algo;
     MyAStarAlgo::GraphSearchResult result = algo.search(problem, heuristic);
 
-    //Visualizer::showFigures();
-    
-    //amp::HW6::grade<PointWaveFrontAlgorithm, ManipulatorWaveFrontAlgorithm, MyAStarAlgo>("ceu.gomez-faulk@colorado.edu", argc, argv, std::make_tuple(wf_algo, point_agent_ctor), std::make_tuple(wf_algo, manipulator_ctor), std::make_tuple());
+    Visualizer::showFigures();
+
+    amp::HW6::grade<PointWaveFrontAlgorithm, ManipulatorWaveFrontAlgorithm, MyAStarAlgo>("nonhuman.biologic@myspace.edu", argc, argv, std::make_tuple(wf_algo, point_agent_ctor), std::make_tuple(wf_algo, manipulator_ctor), std::make_tuple());
     return 0;
 }
