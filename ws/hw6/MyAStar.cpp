@@ -60,5 +60,5 @@ MyAStarAlgo::GraphSearchResult MyAStarAlgo::search(const amp::ShortestPathProble
 
     }
     result.print();
-    return result; // if goal unreachable, catch it */
+    return result; // if goal unreachable, catch it 
 }
