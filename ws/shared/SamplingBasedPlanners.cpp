@@ -6,7 +6,7 @@
 amp::Path2D PRM::plan(const amp::Problem2D& problem) {
     // construct variables
     amp::Path2D path;
-    int n = 1500; double connectionradius  = 1.0;
+    int n = max_iterations;
     std::shared_ptr<amp::Graph<double>> graphPtr = std::make_shared<amp::Graph<double>>();
     std::map<amp::Node, Eigen::Vector2d> nodes;
     // add initial point as node
@@ -53,6 +53,11 @@ amp::Path2D PRM::plan(const amp::Problem2D& problem) {
         path.waypoints.push_back(nodes[node]);
         //LOG("Pushed new wp");
     }
+    if (result.success){
+        path.valid = true;
+    }else {
+        path.valid = false;
+    }
     return path;
 }
 void PRM::connectNeighbors(const amp::Node& newNode, std::map<amp::Node, Eigen::Vector2d>& nodes, const double& connectionradius, std::shared_ptr<amp::Graph<double>>& graphPtr, const amp::Problem2D& problem) {
@@ -76,15 +81,36 @@ Eigen::Vector2d PRM::sampleRandomPoint(const amp::Problem2D& problem){
 bool PRM::isPathFree(const Eigen::Vector2d& start, const Eigen::Vector2d& end, const amp::Problem2D& problem) {
     return !collisionCheckers::isLineInCollision(problem.obstacles, start, end);
 }
+BenchmarkResult PRM::benchmark_prm(int n, double r, const amp::Problem2D& problem) {
+    BenchmarkResult result;
+    PRM prm(n, r);
+
+    for (int i = 0; i < 100; ++i) {
+        auto start_time = std::chrono::high_resolution_clock::now();
+        
+        amp::Path2D path = prm.plan(problem);
+        
+        auto end_time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> computation_time = end_time - start_time;
+        
+        result.computation_times.push_back(computation_time.count());
+
+        if (path.valid) {
+            result.valid_solutions++;
+            result.path_lengths.push_back(path.length());
+        } else {
+            result.path_lengths.push_back(0.0);
+        }
+    }
+
+    return result;
+}
+
 // RRT implementation
 amp::Path2D RRT::plan(const amp::Problem2D& problem) {
     amp::Path2D path;
     std::shared_ptr<amp::Graph<double>> graphPtr = std::make_shared<amp::Graph<double>>();
     std::map<amp::Node, Eigen::Vector2d> nodes;
-    int max_iterations = 7000;
-    double step_size = 0.25;
-    double goal_bias = 0.1;
-    double goal_threshold = 0.15;
 
     nodes[0] = problem.q_init;  // Root tree at initial point
     int node_count = 1;
@@ -110,6 +136,8 @@ amp::Path2D RRT::plan(const amp::Problem2D& problem) {
     // Check if goal node was reached
     if (nodes.count(node_count + 1) == 0) {
         LOG("ERR: Goal node not reached");
+        path.waypoints.push_back(problem.q_init);
+        path.waypoints.push_back(problem.q_goal);
         return path;
     }
 
@@ -141,10 +169,11 @@ amp::Path2D RRT::plan(const amp::Problem2D& problem) {
         }
     } else {
         LOG("ERR: Path not found");
+        path.waypoints.push_back(problem.q_init);
+        path.waypoints.push_back(problem.q_goal);
     }
     return path;
 }
-
 bool RRT::isPathFree(const Eigen::Vector2d& start, const Eigen::Vector2d& end, const amp::Problem2D& problem) {
     return !collisionCheckers::isLineInCollision(problem.obstacles, start, end);
 }
@@ -174,3 +203,30 @@ Eigen::Vector2d RRT::extend(const Eigen::Vector2d& q1, const Eigen::Vector2d& q2
     Eigen::Vector2d direction = (q2 - q1).normalized();
     return q1 + direction * step_size;
 };
+BenchmarkResult RRT::benchmark_rrt(int n, double delta, double eta, double gt, const amp::Problem2D& problem) {
+    BenchmarkResult result;
+    RRT rrt(n, delta, eta, gt);
+
+    for (int i = 0; i < 100; ++i) {
+        auto start_time = std::chrono::high_resolution_clock::now();
+        
+        amp::Path2D path = rrt.plan(problem);
+        auto end_time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> computation_time = end_time - start_time;
+        
+        result.computation_times.push_back(computation_time.count());
+
+        if (path.valid) {
+            result.valid_solutions++;
+            result.path_lengths.push_back(path.length());
+        } else {
+            result.path_lengths.push_back(0.0);
+        }
+    }
+    return result;
+}
+// generalized RRT
+amp::Path maRRT::plan(const Eigen::VectorXd& init, const Eigen::VectorXd& goal, const amp::configurationSpace& collcheck){
+    
+}
+

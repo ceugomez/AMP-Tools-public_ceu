@@ -4,7 +4,6 @@
 #include "MyMultiAgentPlanners.h"
 
 using namespace amp;
-
 void timer_example() {
     double startTime;
     amp::Timer timer("timer");
@@ -41,6 +40,6 @@ int main(int argc, char** argv) {
 
     // Visualize and grade methods
     Visualizer::showFigures();
-    HW8::grade<MyCentralPlanner, MyDecentralPlanner>("firstName.lastName@colorado.edu", argc, argv, std::make_tuple(), std::make_tuple());
+    HW8::grade<MyCentralPlanner, MyDecentralPlanner>("ceu.gomezfaulk@colorado.edu", argc, argv, std::make_tuple(), std::make_tuple());
     return 0;
 }

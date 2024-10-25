@@ -1,4 +1,5 @@
 #include "MyMultiAgentPlanners.h"
+#include "SamplingBasedPlanners.h"  // RRT implementation
 
 amp::MultiAgentPath2D MyCentralPlanner::plan(const amp::MultiAgentProblem2D& problem) {
     amp::MultiAgentPath2D path;
@@ -6,6 +7,7 @@ amp::MultiAgentPath2D MyCentralPlanner::plan(const amp::MultiAgentProblem2D& pro
         amp::Path2D agent_path;
         agent_path.waypoints = {agent.q_init, agent.q_goal};
         path.agent_paths.push_back(agent_path);
+    
     }
     return path;
 }
