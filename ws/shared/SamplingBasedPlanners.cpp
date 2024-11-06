@@ -225,8 +225,4 @@ BenchmarkResult RRT::benchmark_rrt(int n, double delta, double eta, double gt, c
     }
     return result;
 }
-// generalized RRT
-amp::Path maRRT::plan(const Eigen::VectorXd& init, const Eigen::VectorXd& goal, const amp::configurationSpace& collcheck){
-    
-}
 

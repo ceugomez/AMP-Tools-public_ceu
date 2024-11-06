@@ -57,9 +57,3 @@ private:
     double goal_bias;
     double goal_threshold;
 };
-
-class maRRT {
-    public:
-        amp::Path plan(const Eigen::VectorXd& init, const Eigen::VectorXd& goal, const amp::configurationSpace& collcheck);
-    
-}
