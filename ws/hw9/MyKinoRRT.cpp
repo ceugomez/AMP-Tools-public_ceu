@@ -5,26 +5,30 @@ void MySingleIntegrator::propagate(Eigen::VectorXd &state, Eigen::VectorXd &cont
     state += dt * control;
 };
 amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::DynamicAgent &agent)
-{
+{   
+    // set up variables
     amp::KinoPath path;
     amp::RNG rng;
-    double dt = 0.5;
+    double dt = 0.5;    // worth varying out of curiosity
     Eigen::VectorXd goal = Eigen::VectorXd::Zero(problem.q_goal.size());
-    goal[0] = (problem.q_goal[0].first + problem.q_goal[0].second) / 2;
-    goal[1] = (problem.q_goal[1].first + problem.q_goal[1].second) / 2;
+    //pick a goal in the middle of goal region 
+    for (int i = 0; i<problem.q_goal.size(); ++i){
+        goal[i] = (problem.q_goal[i].first + problem.q_goal[i].second) / 2;
+    }
     Eigen::VectorXd state;
     std::shared_ptr<amp::Graph<std::tuple<double, Eigen::VectorXd>>> graphPtr = std::make_shared<amp::Graph<std::tuple<double, Eigen::VectorXd>>>();
+    // create empty graph
     std::map<amp::Node, Eigen::VectorXd> nodes;
-    nodes[0] = problem.q_init;
-    int node_count = 1;
-
+    // initialize node at start point
+    nodes[0] = problem.q_init; int node_count = 1;
+    // lambda to push a waypoint (in all its glory)
     auto pushWp = [&](const Eigen::VectorXd &state, const Eigen::VectorXd &control, double t)
     {
         path.waypoints.push_back(state);
         path.controls.push_back(control);
         path.durations.push_back(t);
     };
-
+    // lambda to generate a random control within control bounds
     auto randcontrol = [&]()
     {
         Eigen::VectorXd u(problem.u_bounds.size());
@@ -34,14 +38,14 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         }
         return u;
     };
-
+    // lambda to score some control based on how close it brings the agent to some provided goal (NOT the general goal)
     auto scoreControl = [&](Eigen::VectorXd nearest, Eigen::VectorXd control, Eigen::VectorXd goal)
     {
         Eigen::VectorXd next = nearest;
         agent.propagate(next, control, dt);
         return (next - goal).norm();
     };
-
+    // lambda to get random state from within problem bounds
     auto randstate = [&](double bias_prob)
     {
         Eigen::VectorXd sample;
@@ -59,7 +63,7 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         }
         return sample;
     };
-
+    // lambda  to find best-of-many controls to propagate twds sample from nearest
     auto findbestControl = [&](const Eigen::VectorXd &nearest, const Eigen::VectorXd &sample)
     {
         int iters = 50;
@@ -77,8 +81,8 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         }
         return bestControl;
     };
-
-    auto nearestNode = [&](const Eigen::VectorXd &sample)
+    // lambda to find the nearest node to a sample
+    auto nearestNode = [&](const Eigen::VectorXd& sample)
     {
         amp::Node nearest = 0;
         double min_dist = std::numeric_limits<double>::max(); // Start with a very large minimum distance
@@ -96,10 +100,23 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         // std::cout << "Nearest node to sample found: " << nearest << " with distance: " << min_dist << "\n";
         return nearest;
     };
+    // lambda to check if the point is within the problem bounds
+    auto pointInBounds = [&](const Eigen::VectorXd &point) {
+        if (point.size() != problem.q_bounds.size()) {
+            return false;
+        }
+        for (int i = 0; i < point.size(); ++i) {
+            double min_bound = problem.q_bounds[i].first;
+            double max_bound = problem.q_bounds[i].second;
+            if (point[i] < min_bound || point[i] > max_bound) {
+                return false;
+            }
+        }
+        return true;
+    };
 
-    int iter = 0;
-    const int max_iter = 1500;
-    bool goal_reached = false;
+    // Runtime loop
+    int iter = 0; const int max_iter = 1500; bool goal_reached = false;
     while (iter < max_iter && !goal_reached)
     {
         // sample random state from environment with goal bias 0.1
@@ -112,8 +129,8 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         // propagate using that control
         Eigen::VectorXd next_state = nearest_state;
         agent.propagate(next_state, control, dt);
-        // check collision in next_state:
-        if (!collisionCheckers::isLineInCollision(problem.obstacles, nearest_state, next_state))
+        // check collision in next_state: !! needs generalized to other problem statements
+        if (!collisionCheckers::isLineInCollision(problem.obstacles, nearest_state, next_state) && pointInBounds(next_state))
         {
             // determine the cost
             double cost = (next_state - nearest_state).norm();
@@ -162,7 +179,6 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
             iter++;
         }
     }
-
     // catch RRT failures and return random path
     if (!path.valid)
     {
@@ -180,6 +196,6 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         }
         path.valid = true;
     }
-    //path.print();
+    path.print();
     return path;
 }
