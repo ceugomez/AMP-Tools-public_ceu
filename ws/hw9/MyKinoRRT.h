@@ -5,6 +5,7 @@
 
 // Include the correct homework headers
 #include "hw/HW9.h"
+#include "../shared/collisionCheckers.h"
 
 class MyKinoRRT : public amp::KinodynamicRRT {
     public:

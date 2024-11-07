@@ -95,3 +95,7 @@ bool collisionCheckers::isLineInCollision(const std::vector<amp::Obstacle2D>& ob
         }
     return false; 
 }
+bool collisionCheckers::isPathInAnyPolygon(const std::vector<amp::Obstacle2D>& obstacles, const Eigen::Vector2d& q1, const Eigen::Vector2d& q2 ){
+    // unnecessary but I don't feel like deleting it
+    return true;
+}
