@@ -4,15 +4,52 @@ void MySingleIntegrator::propagate(Eigen::VectorXd &state, Eigen::VectorXd &cont
 {
     state += dt * control;
 };
+void MyFirstOrderUnicycle::propagate(Eigen::VectorXd &state, Eigen::VectorXd &control, double dt)
+{
+    // unpack state
+    double r = 0.25; double x = state[0]; double y = state[1]; double theta = state[2];
+    // unpack ctrl
+    double v = control[0];  // linear velocity 
+    double omega = control[1];  // angular velocity
+
+    // dynamics
+    theta += omega * dt;       // Update orientation
+    x += v * dt *  r * cos(theta);  // Update x position
+    y += v * dt *  r * sin(theta);  // Update y position
+
+    // wrap theta [-pi,pi]
+    while (theta > M_PI) {
+        theta -= 2 * M_PI;
+    }
+    while (theta < -M_PI) {
+        theta += 2 * M_PI;
+    }
+    // updatestate
+    state[0] = x;
+    state[1] = y;
+    state[2] = theta;
+};
+
+void MySecondOrderUnicycle::propagate(Eigen::VectorXd &state, Eigen::VectorXd &control, double  dt)
+{
+    // unpack state
+   double x = state[0]; double y = state[1]; double theta = state[2]; double sigma = state[3]; double omega  = state[4];
+   // unpack ctrl
+};
+
 amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::DynamicAgent &agent)
-{   
+{
     // set up variables
     amp::KinoPath path;
     amp::RNG rng;
-    double dt = 0.5;    // worth varying out of curiosity
+    double dt = 0.1; // worth varying out of curiosity    
+    int iter = 0;
+    const int max_iter = 7500;
+    bool goal_reached = false;
     Eigen::VectorXd goal = Eigen::VectorXd::Zero(problem.q_goal.size());
-    //pick a goal in the middle of goal region 
-    for (int i = 0; i<problem.q_goal.size(); ++i){
+    // pick a goal in the middle of goal region
+    for (int i = 0; i < problem.q_goal.size(); ++i)
+    {
         goal[i] = (problem.q_goal[i].first + problem.q_goal[i].second) / 2;
     }
     Eigen::VectorXd state;
@@ -20,7 +57,8 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
     // create empty graph
     std::map<amp::Node, Eigen::VectorXd> nodes;
     // initialize node at start point
-    nodes[0] = problem.q_init; int node_count = 1;
+    nodes[0] = problem.q_init;
+    int node_count = 1;
     // lambda to push a waypoint (in all its glory)
     auto pushWp = [&](const Eigen::VectorXd &state, const Eigen::VectorXd &control, double t)
     {
@@ -43,7 +81,14 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
     {
         Eigen::VectorXd next = nearest;
         agent.propagate(next, control, dt);
-        return (next - goal).norm();
+        if (nearest.size() == 2){   // simple integrator - weight xy positioning
+            return (next - goal).norm();
+        }
+        if (nearest.size() == 3){   //  1st order unicycle - only weight xy positioning
+            double cost = abs((next[0]-goal[0])) + abs((next[1]-goal[1]));
+            return cost;
+        }
+        return 1e12;
     };
     // lambda to get random state from within problem bounds
     auto randstate = [&](double bias_prob)
@@ -82,7 +127,7 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         return bestControl;
     };
     // lambda to find the nearest node to a sample
-    auto nearestNode = [&](const Eigen::VectorXd& sample)
+    auto nearestNode = [&](const Eigen::VectorXd &sample)
     {
         amp::Node nearest = 0;
         double min_dist = std::numeric_limits<double>::max(); // Start with a very large minimum distance
@@ -101,26 +146,67 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         return nearest;
     };
     // lambda to check if the point is within the problem bounds
-    auto pointInBounds = [&](const Eigen::VectorXd &point) {
-        if (point.size() != problem.q_bounds.size()) {
+    auto pointInBounds = [&](const Eigen::VectorXd &point)
+    {
+        if (point.size() != problem.q_bounds.size())
+        {
             return false;
         }
-        for (int i = 0; i < point.size(); ++i) {
+        for (int i = 0; i < point.size(); ++i)
+        {
             double min_bound = problem.q_bounds[i].first;
             double max_bound = problem.q_bounds[i].second;
-            if (point[i] < min_bound || point[i] > max_bound) {
+            if (point[i] < min_bound || point[i] > max_bound)
+            {
                 return false;
             }
         }
         return true;
     };
+    // lambda to check if goal is reached based on agent type : !!!!!!!!FINISH!!!!!!!
+    auto goalReached = [&](const Eigen::VectorXd &point)
+    {
+        // if state is 2-dimensional: simple integrator conditions
+        if (problem.q_bounds.size()==2){
+            double dx = abs(point[0]-goal[0]);
+            double dy = abs(point[1]-goal[1]);
+            if (dy<0.25 && dx < 0.25){
+                return true;
+            }
+        }
+        // if state is 3-dimensional: 1st order unicycle conditions
+        if (problem.q_bounds.size() == 3){
+            double dx = abs(point[0]-goal[0]);
+            double dy = abs(point[1]-goal[1]);
+            if (dy<0.5 && dx < 0.5){
+                return true;
+            }
 
+        }
+        // if state is 5-dimensional 
+
+        return false;
+    };
+    // lambda to print out std::vector<std::pair<double, double>>
+    auto printStuff = [&](const std::vector<std::pair<double, double>>& obj){
+        for (const auto& p : obj) {
+            std::cout << "(" << p.first << ", " << p.second << ")" << std::endl;
+        }
+        return;
+    };
+    // lambda to print out std::vector<Eigen::VectorXd>
+   auto printStuff2 = [&](const std::vector<Eigen::VectorXd>& obj){
+        for (const auto& p : obj) {
+            std::cout << "(" << p(0) << ", " << p(1) << ")" << std::endl;
+        }
+        return;
+    };
+    
     // Runtime loop
-    int iter = 0; const int max_iter = 1500; bool goal_reached = false;
     while (iter < max_iter && !goal_reached)
     {
         // sample random state from environment with goal bias 0.1
-        Eigen::VectorXd sample = randstate(0.9);
+        Eigen::VectorXd sample = randstate(0.1);
         // get the nearest node id and state
         amp::Node nearest_id = nearestNode(sample);
         Eigen::VectorXd nearest_state = nodes[nearest_id];
@@ -139,7 +225,7 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
             graphPtr->connect(nearest_id, node_count, std::make_tuple(cost, control));
             graphPtr->connect(node_count, nearest_id, std::make_tuple(cost, control)); // bidirectional
             // check if we've hit goal and backtrack
-            if ((next_state - goal).norm() < 0.1)
+            if (goalReached(next_state))
             {
                 amp::Node current = node_count;
                 // backtrack through graph
@@ -197,5 +283,11 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         path.valid = true;
     }
     path.print();
+    LOG("state bounds");
+    printStuff(problem.q_bounds);
+    LOG("control bounds");
+    printStuff(problem.u_bounds);
+    LOG("Controls:");
+    printStuff2(path.controls);
     return path;
-}
+};
