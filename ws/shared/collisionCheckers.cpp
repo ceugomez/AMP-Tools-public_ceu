@@ -130,11 +130,11 @@ bool collisionCheckers::isPathInAnyPolygon(const std::vector<amp::Obstacle2D> &o
 bool collisionCheckers::isPolygonPathFree(const std::vector<amp::Obstacle2D> &obstacles, const Eigen::VectorXd &q1, const Eigen::Vector2d &q2, const amp::AgentDimensions &dim)
 {
     double stepSize = 0.01;
-    double agentLength = dim.length+0.4; // margin
-    double agentWidth = dim.width+0.4;   // margin 
+    double agentLength = dim.length+0.1; // margin
+    double agentWidth = dim.width+0.1;   // margin 
     // compute the direction from q1 to q2 and the path length
-    Eigen::Vector2d direction = (q2 - q1.head<2>()).normalized();
-    double pathLength = (q2 - q1.head<2>()).norm();
+    Eigen::Vector2d direction = (q2.head<2>() - q1.head<2>()).normalized();
+    double pathLength = (q2.head<2>() - q1.head<2>()).norm();
     // helper function to calculate agent corners at a given position along the path
     auto getAgentCorners = [&](const Eigen::Vector2d &pos)
     {

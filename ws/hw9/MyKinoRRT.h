@@ -7,27 +7,44 @@
 #include "hw/HW9.h"
 #include "../shared/collisionCheckers.h"
 
+
 class MyKinoRRT : public amp::KinodynamicRRT {
-    public:
-        virtual amp::KinoPath plan(const amp::KinodynamicProblem2D& problem, amp::DynamicAgent& agent) override;
-};  
+public:
+    // default constructor 
+    MyKinoRRT() : biasProb(0.05), controlIter(100) {}
 
-class MySingleIntegrator : public amp::DynamicAgent {
-    public:
-        virtual void propagate(Eigen::VectorXd& state, Eigen::VectorXd& control, double dt) override;
+    // parameterized constructor
+    MyKinoRRT(double biasProb, int controlIter) 
+        : biasProb(biasProb), controlIter(controlIter) {}
+    virtual amp::KinoPath plan(const amp::KinodynamicProblem2D& problem, amp::DynamicAgent& agent) override;
+
+private:
+    double biasProb;
+    int controlIter;
+    const int max_iter = 50000;
 };
 
-class MyFirstOrderUnicycle : public amp::DynamicAgent {
-    public:
-        virtual void propagate(Eigen::VectorXd& state, Eigen::VectorXd& control, double dt) override;
+
+class MySingleIntegrator : public amp::DynamicAgent
+{
+public:
+    virtual void propagate(Eigen::VectorXd &state, Eigen::VectorXd &control, double dt) override;
 };
 
-class MySecondOrderUnicycle : public amp::DynamicAgent {
-    public:
-        virtual void propagate(Eigen::VectorXd& state, Eigen::VectorXd& control, double dt) override;
+class MyFirstOrderUnicycle : public amp::DynamicAgent
+{
+public:
+    virtual void propagate(Eigen::VectorXd &state, Eigen::VectorXd &control, double dt) override;
 };
 
-class MySimpleCar : public amp::DynamicAgent {
-    public:
-        virtual void propagate(Eigen::VectorXd& state, Eigen::VectorXd& control, double dt) override {};
+class MySecondOrderUnicycle : public amp::DynamicAgent
+{
+public:
+    virtual void propagate(Eigen::VectorXd &state, Eigen::VectorXd &control, double dt) override;
+};
+
+class MySimpleCar : public amp::DynamicAgent
+{
+public:
+    virtual void propagate(Eigen::VectorXd &state, Eigen::VectorXd &control, double dt) override{};
 };

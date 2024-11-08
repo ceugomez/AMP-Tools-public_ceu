@@ -13,14 +13,15 @@ void MyFirstOrderUnicycle::propagate(Eigen::VectorXd &state, Eigen::VectorXd &co
     double y = state[1];
     double theta = state[2];
     // unpack control
-    double v = control[0];      // linear velocity
-    double omega = control[1];   // angular velocity
+    double v = control[0];     // linear velocity
+    double omega = control[1]; // angular velocity
     // lambda function to compute xdot
-    auto dynamics = [&](double x, double y, double theta) {
+    auto dynamics = [&](double x, double y, double theta)
+    {
         Eigen::VectorXd dxdt(3);
-        dxdt[0] = v * r * cos(theta);  // dx/dt
-        dxdt[1] = v * r * sin(theta);  // dy/dt
-        dxdt[2] = omega;               // dtheta/dt
+        dxdt[0] = v * r * cos(theta); // dx/dt
+        dxdt[1] = v * r * sin(theta); // dy/dt
+        dxdt[2] = omega;              // dtheta/dt
         return dxdt;
     };
     // RK4 intermediate steps
@@ -33,10 +34,12 @@ void MyFirstOrderUnicycle::propagate(Eigen::VectorXd &state, Eigen::VectorXd &co
     y += (dt / 6.0) * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]);
     theta += (dt / 6.0) * (k1[2] + 2 * k2[2] + 2 * k3[2] + k4[2]);
     // wrap theta to [-pi, pi]
-    while (theta > M_PI) {
+    while (theta > M_PI)
+    {
         theta -= 2 * M_PI;
     }
-    while (theta < -M_PI) {
+    while (theta < -M_PI)
+    {
         theta += 2 * M_PI;
     }
     // update state
@@ -44,13 +47,15 @@ void MyFirstOrderUnicycle::propagate(Eigen::VectorXd &state, Eigen::VectorXd &co
     state[1] = y;
     state[2] = theta;
 };
-void MySecondOrderUnicycle::propagate(Eigen::VectorXd &state, Eigen::VectorXd &control, double dt) {
-    if (control.size() != 2) {
-        // LOG("Error: Control input size is invalid.");
+// simplecar propagate
+void MySecondOrderUnicycle::propagate(Eigen::VectorXd &state, Eigen::VectorXd &control, double dt)
+{
+    if (control.size() != 2)
+    {
+        LOG("Error: Control input size is invalid.");
         control = Eigen::VectorXd::Zero(2);
     }
 
-    //LOG(control.size());
     // consts
     double r = 0.25;
     // unpack state
@@ -60,16 +65,17 @@ void MySecondOrderUnicycle::propagate(Eigen::VectorXd &state, Eigen::VectorXd &c
     double sigma = state[3];
     double omega = state[4];
     // unpack control
-    double l = control[0];  // linear acceleration
-    double a = control[1];  // angular acceleration
+    double l = control[0]; // linear acceleration
+    double a = control[1]; // angular acceleration
     // lambda function as xdot = f(x,u);
-    auto dynamics = [&](double x, double y, double theta, double sigma, double omega) {
+    auto dynamics = [&](double x, double y, double theta, double sigma, double omega)
+    {
         Eigen::VectorXd dxdt(5);
-        dxdt[0] = sigma * r * cos(theta);   // dx/dt
-        dxdt[1] = sigma * r * sin(theta);   // dy/dt
-        dxdt[2] = omega;                    // dtheta/dt
-        dxdt[3] = l;                        // dsigma/dt (linear acceleration)
-        dxdt[4] = a;                        // domega/dt (angular acceleration)
+        dxdt[0] = sigma * r * cos(theta); // dx/dt
+        dxdt[1] = sigma * r * sin(theta); // dy/dt
+        dxdt[2] = omega;                  // dtheta/dt
+        dxdt[3] = l;                      // dsigma/dt (linear acceleration)
+        dxdt[4] = a;                      // domega/dt (angular acceleration)
         return dxdt;
     };
     // define intermediate derivatives (k1, k2, k3, k4)
@@ -81,8 +87,7 @@ void MySecondOrderUnicycle::propagate(Eigen::VectorXd &state, Eigen::VectorXd &c
         y + 0.5 * dt * k1[1],
         theta + 0.5 * dt * k1[2],
         sigma + 0.5 * dt * k1[3],
-        omega + 0.5 * dt * k1[4]
-    );
+        omega + 0.5 * dt * k1[4]);
 
     // compute k3
     Eigen::VectorXd k3 = dynamics(
@@ -90,8 +95,7 @@ void MySecondOrderUnicycle::propagate(Eigen::VectorXd &state, Eigen::VectorXd &c
         y + 0.5 * dt * k2[1],
         theta + 0.5 * dt * k2[2],
         sigma + 0.5 * dt * k2[3],
-        omega + 0.5 * dt * k2[4]
-    );
+        omega + 0.5 * dt * k2[4]);
 
     // compute k4
     Eigen::VectorXd k4 = dynamics(
@@ -99,8 +103,7 @@ void MySecondOrderUnicycle::propagate(Eigen::VectorXd &state, Eigen::VectorXd &c
         y + dt * k3[1],
         theta + dt * k3[2],
         sigma + dt * k3[3],
-        omega + dt * k3[4]
-    );
+        omega + dt * k3[4]);
     // RK4 integration - assign states
     state[0] += (dt / 6.0) * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]);
     state[1] += (dt / 6.0) * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]);
@@ -113,9 +116,24 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
     // set up variables
     amp::KinoPath path;
     amp::RNG rng;
-    double dt = 0.1; // worth varying out of curiosity    
+
+    // initialize dynamic step size counter
+    double dt = 0.3;      // default value for dt
+    double min_dt = 0.05; // minimum step size
+    double max_dt = 1.0;  // maximum step size
+    int success_count = 0;
+    int failure_count = 0;
+    const int adjust_threshold = 5;
+
+    // initial delT based on which problem it is
+    if (problem.q_goal.size() == 2)
+        dt = 0.3;
+    else if (problem.q_goal.size() == 3)
+        dt = 0.5;
+    else if (problem.q_goal.size() == 5)
+        dt = 0.5;
+
     int iter = 0;
-    const int max_iter = 7500;
     bool goal_reached = false;
     Eigen::VectorXd goal = Eigen::VectorXd::Zero(problem.q_goal.size());
     // pick a goal in the middle of goal region
@@ -124,8 +142,7 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         goal[i] = (problem.q_goal[i].first + problem.q_goal[i].second) / 2;
     }
     Eigen::VectorXd state;
-    amp::Graph<std::tuple<double, Eigen::VectorXd>> graph;
-
+    amp::Graph<std::tuple<double, Eigen::VectorXd, double>> graph; // cost, control, dt
     // create empty graph
     std::map<amp::Node, Eigen::VectorXd> nodes;
     // initialize node at start point
@@ -153,27 +170,35 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
     {
         Eigen::VectorXd next = nearest;
         agent.propagate(next, control, dt);
-        if (nearest.size() == 2){   // simple integrator - weight xy positioning
+        if (nearest.size() == 2)
+        { // simple integrator - weight xy positioning
             return (next - goal).norm();
         }
-        if (nearest.size() == 3){   //  1st order unicycle - only weight xy positioning
-            double cost = abs((next[0]-goal[0])) + abs((next[1]-goal[1]));
+        if (nearest.size() == 3)
+        { //  1st order unicycle - only weight xy positioning
+            double cost = abs((next[0] - goal[0])) + abs((next[1] - goal[1]));
             return cost;
         }
-        if (nearest.size() == 5){   //  2nd order unicycle - only weight xy positioning
-            double cost = abs((next[0]-goal[0])) + abs((next[1]-goal[1]));
+        if (nearest.size() == 5)
+        { //  2nd order unicycle - only weight xy positioning
+            double cost = abs((next[0] - goal[0])) + abs((next[1] - goal[1]));
+            if ((next - goal).head<2>().norm() < 3)
+            {                                        // if close to goal
+                cost += abs(next[4]) + abs(next[5]); // also weight the magnitude of the control vector
+            }
             return cost;
         }
-        else{
+        else
+        {
             LOG("scoreControl Error: no recognized state format");
             return 1e10;
         }
     };
     // lambda to get random state from within problem bounds
-    auto randstate = [&](double bias_prob)
+    auto randstate = [&]()
     {
         Eigen::VectorXd sample;
-        if (rng.randd(0.0, 1.0) < bias_prob)
+        if (rng.randd(0.0, 1.0) < biasProb)
         {
             sample = goal;
         }
@@ -187,10 +212,10 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         }
         return sample;
     };
-    // lambda  to find best-of-many controls to propagate twds sample from nearest
+    // lambda to find best-of-many controls to propagate twds sample from nearest
     auto findbestControl = [&](const Eigen::VectorXd &nearest, const Eigen::VectorXd &sample)
     {
-        int iters = 50;
+        int iters = controlIter;
         double bestScore = 1e12;
         Eigen::VectorXd bestControl;
         for (int i = 0; i < iters; ++i)
@@ -242,45 +267,62 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         }
         return true;
     };
-    // lambda to check if goal is reached based on agent type : !!!!!!!!FINISH!!!!!!!
+    // lambda to check if goal is reached based on agent type :
     auto goalReached = [&](const Eigen::VectorXd &point)
     {
         // if state is 2-dimensional: simple integrator conditions
-        if (problem.q_bounds.size()==2){
-            double dx = abs(point[0]-goal[0]);
-            double dy = abs(point[1]-goal[1]);
-            if (dy<0.2 && dx < 0.2){
+        if (problem.q_goal.size() == 2)
+        {
+            double dx = abs(point[0] - goal[0]);
+            double dy = abs(point[1] - goal[1]);
+            if (dy < 0.2 && dx < 0.2)
+            {
                 return true;
             }
         }
         // if state is 3-dimensional: 1st order unicycle conditions
-        if (problem.q_bounds.size() == 3){
-            double dx = abs(point[0]-goal[0]);
-            double dy = abs(point[1]-goal[1]);
-            if (dy<0.4 && dx < 0.4){
+        if (problem.q_goal.size() == 3)
+        {
+            double dx = abs(point[0] - goal[0]);
+            double goalXwidth = abs(problem.q_goal[0].first-problem.q_goal[0].second)/2;
+            double dy = abs(point[1] - goal[1]);
+            double goalYwidth = abs(problem.q_goal[1].first-problem.q_goal[1].second)/2;
+            if (dy < goalXwidth && dx < goalXwidth)
+            {
                 return true;
             }
-
         }
-        // if state is 5-dimensional 
-        if (problem.q_bounds.size() == 5){
-            double dx = abs(point[0]-goal[0]);
-            double dy = abs(point[1]-goal[1]);
-            if (dy<0.4 && dx < 0.4){
+        // if state is 5-dimensional
+        if (problem.q_goal.size() == 5)
+        {
+            double dx = abs(point[0] - goal[0]);
+            double dy = abs(point[1] - goal[1]);
+            double ctrlmag1 = abs(point[3]);
+            double ctrlmag2 = abs(point[4]);
+            if (dy < 0.4 && dx < 0.4 && ctrlmag1 < 2 && ctrlmag2 < 1)
+            {
                 return true;
             }
+        }
+        if (problem.q_goal.size() != 3 && problem.q_goal.size() != 5 && problem.q_goal.size() != 2)
+        {
+            LOG("State mismatch - unrecognized agent");
+            LOG("State Size:");
+            LOG(problem.q_goal.size());
+            return false;
         }
         return false;
     };
     // lambda to collision check path based on agent type
-    auto isPathFree = [&](const Eigen::VectorXd &nearest, const Eigen::VectorXd &next){
+    auto isPathFree = [&](const Eigen::VectorXd &nearest, const Eigen::VectorXd &next)
+    {
         // 2 states means single integrator
         if (problem.q_init.size() == 2)
         {
             return !collisionCheckers::isLineInCollision(problem.obstacles, nearest, next) && pointInBounds(next);
         }
         // 3 states means 1st order unicycle
-        if (problem.q_init.size() == 3) 
+        if (problem.q_init.size() == 3)
         {
             return collisionCheckers::isPolygonPathFree(problem.obstacles, nearest, next, agent.agent_dim) && pointInBounds(next);
         }
@@ -291,26 +333,28 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         }
         return false;
     };
-    // lambda to print out std::vector<std::pair<double, double>>
-    auto printStuff = [&](const std::vector<std::pair<double, double>>& obj){
-        for (const auto& p : obj) {
-            std::cout << "(" << p.first << ", " << p.second << ")" << std::endl;
+    // lambda to dynamically adjust step size
+    auto adjustStepSize = [&]()
+    {
+        if (success_count >= adjust_threshold && dt < max_dt)
+        {
+            dt *= 1.1; // Increase step size
+            dt = std::min(dt, max_dt);
+            success_count = 0; // Reset success count
         }
-        return;
-    };
-    // lambda to print out std::vector<Eigen::VectorXd>
-   auto printStuff2 = [&](const std::vector<Eigen::VectorXd>& obj){
-        for (const auto& p : obj) {
-            std::cout << "(" << p(0) << ", " << p(1) << ")" << std::endl;
+        else if (failure_count >= adjust_threshold && dt > min_dt)
+        {
+            dt *= 0.9; // Decrease step size
+            dt = std::max(dt, min_dt);
+            failure_count = 0; // Reset failure count
         }
-        return;
     };
-    
     // Runtime loop
+    path.valid = false;
     while (iter < max_iter && !goal_reached)
     {
-        // sample random state from environment with goal bias 0.1
-        Eigen::VectorXd sample = randstate(0.1);
+        // sample random state from environment with goal bias
+        Eigen::VectorXd sample = randstate();
         // get the nearest node id and state
         amp::Node nearest_id = nearestNode(sample);
         Eigen::VectorXd nearest_state = nodes[nearest_id];
@@ -322,15 +366,20 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         // check collision in next_state and along path
         if (isPathFree(nearest_state, next_state))
         {
+            // adjust step size based on success
+            //success_count++;
+            //failure_count = 0;
+            //adjustStepSize();
             // determine the cost
             double cost = (next_state - nearest_state).norm();
             nodes[node_count] = next_state;
             // add node to map
-            graph.connect(nearest_id, node_count, std::make_tuple(cost, control));
-            graph.connect(node_count, nearest_id, std::make_tuple(cost, control)); // bidirectional
+            graph.connect(nearest_id, node_count, std::make_tuple(cost, control, dt));
+            graph.connect(node_count, nearest_id, std::make_tuple(cost, control, dt)); // bidirectional
             // check if we've hit goal and backtrack
             if (goalReached(next_state))
             {
+
                 amp::Node current = node_count;
                 // backtrack through graph
                 while (current != 0) // while we have not reached root node
@@ -345,6 +394,7 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
                     // get control from parent edge
                     auto parent_edge = outgoing_edges.front();
                     Eigen::VectorXd control = std::get<1>(parent_edge);
+                    // double dt = std::get<2>(parent_edge);
                     // push back point, control and duration
                     pushWp(nodes[current], control, dt);
                     // get parents (with error checking)
@@ -368,6 +418,13 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
             node_count++;
             iter++;
         }
+        else
+        {
+            // Failed path extension
+            // failure_count++;
+            // success_count = 0;
+            // adjustStepSize(); // Adjust step size
+        }
     }
     // catch RRT failures and return random path
     if (!path.valid)
@@ -377,21 +434,13 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         path.waypoints.push_back(state);
         for (int iter = 0; iter < 100; ++iter)
         {
-            Eigen::VectorXd sample = randstate(0.9);
+            Eigen::VectorXd sample = randstate();
             Eigen::VectorXd control = findbestControl(state, sample);
             agent.propagate(state, control, dt);
             pushWp(state, control, dt);
             if ((state - goal).norm() < 0.05)
                 break;
         }
-        path.valid = true;
     }
-    //path.print();
-    //LOG("state bounds");
-    //printStuff(problem.q_bounds);
-    //LOG("control bounds");
-    //printStuff(problem.u_bounds);
-    //LOG("Controls:");
-    //printStuff2(path.controls);
     return path;
 };
