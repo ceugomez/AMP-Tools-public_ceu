@@ -113,9 +113,9 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
     // set up variables
     amp::KinoPath path;
     amp::RNG rng;
-    double dt = 0.3; // worth varying out of curiosity    
+    double dt = 0.1; // worth varying out of curiosity    
     int iter = 0;
-    const int max_iter = 5000;
+    const int max_iter = 7500;
     bool goal_reached = false;
     Eigen::VectorXd goal = Eigen::VectorXd::Zero(problem.q_goal.size());
     // pick a goal in the middle of goal region
@@ -160,7 +160,14 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
             double cost = abs((next[0]-goal[0])) + abs((next[1]-goal[1]));
             return cost;
         }
-        return 1e12;
+        if (nearest.size() == 5){   //  2nd order unicycle - only weight xy positioning
+            double cost = abs((next[0]-goal[0])) + abs((next[1]-goal[1]));
+            return cost;
+        }
+        else{
+            LOG("scoreControl Error: no recognized state format");
+            return 1e10;
+        }
     };
     // lambda to get random state from within problem bounds
     auto randstate = [&](double bias_prob)
@@ -257,9 +264,12 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         }
         // if state is 5-dimensional 
         if (problem.q_bounds.size() == 5){
-
+            double dx = abs(point[0]-goal[0]);
+            double dy = abs(point[1]-goal[1]);
+            if (dy<0.4 && dx < 0.4){
+                return true;
+            }
         }
-
         return false;
     };
     // lambda to collision check path based on agent type
