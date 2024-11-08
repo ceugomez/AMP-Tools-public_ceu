@@ -24,7 +24,7 @@ class MyFirstOrderUnicycle : public amp::DynamicAgent {
 
 class MySecondOrderUnicycle : public amp::DynamicAgent {
     public:
-        virtual void propagate(Eigen::VectorXd& state, Eigen::VectorXd& control, double dt) override {};
+        virtual void propagate(Eigen::VectorXd& state, Eigen::VectorXd& control, double dt) override;
 };
 
 class MySimpleCar : public amp::DynamicAgent {

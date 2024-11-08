@@ -25,6 +25,6 @@ int main(int argc, char** argv) {
     if (path.valid)
         Visualizer::makeFigure(prob, path, false); // Set to 'true' to render animation
     Visualizer::showFigures();
-    // HW9::grade<MyKinoRRT, MySingleIntegrator, MyFirstOrderUnicycle, MySecondOrderUnicycle, MySimpleCar>("ceu.gomez-faulk@colorado.edu", argc, argv, std::make_tuple(), std::make_tuple(), std::make_tuple(), std::make_tuple(), std::make_tuple());
+    HW9::grade<MyKinoRRT, MySingleIntegrator, MyFirstOrderUnicycle, MySecondOrderUnicycle, MySimpleCar>("ceu.gomez-faulk@colorado.edu", argc, argv, std::make_tuple(), std::make_tuple(), std::make_tuple(), std::make_tuple(), std::make_tuple());
     return 0;
 }
