@@ -6,18 +6,33 @@ void MySingleIntegrator::propagate(Eigen::VectorXd &state, Eigen::VectorXd &cont
 };
 void MyFirstOrderUnicycle::propagate(Eigen::VectorXd &state, Eigen::VectorXd &control, double dt)
 {
+    // constants
+    double r = 0.25;
     // unpack state
-    double r = 0.25; double x = state[0]; double y = state[1]; double theta = state[2];
-    // unpack ctrl
-    double v = control[0];  // linear velocity 
-    double omega = control[1];  // angular velocity
-
-    // dynamics
-    theta += omega * dt;       // Update orientation
-    x += v * dt *  r * cos(theta);  // Update x position
-    y += v * dt *  r * sin(theta);  // Update y position
-
-    // wrap theta [-pi,pi]
+    double x = state[0];
+    double y = state[1];
+    double theta = state[2];
+    // unpack control
+    double v = control[0];      // linear velocity
+    double omega = control[1];   // angular velocity
+    // lambda function to compute xdot
+    auto dynamics = [&](double x, double y, double theta) {
+        Eigen::VectorXd dxdt(3);
+        dxdt[0] = v * r * cos(theta);  // dx/dt
+        dxdt[1] = v * r * sin(theta);  // dy/dt
+        dxdt[2] = omega;               // dtheta/dt
+        return dxdt;
+    };
+    // RK4 intermediate steps
+    Eigen::VectorXd k1 = dynamics(x, y, theta);
+    Eigen::VectorXd k2 = dynamics(x + 0.5 * dt * k1[0], y + 0.5 * dt * k1[1], theta + 0.5 * dt * k1[2]);
+    Eigen::VectorXd k3 = dynamics(x + 0.5 * dt * k2[0], y + 0.5 * dt * k2[1], theta + 0.5 * dt * k2[2]);
+    Eigen::VectorXd k4 = dynamics(x + dt * k3[0], y + dt * k3[1], theta + dt * k3[2]);
+    // update state using RK4
+    x += (dt / 6.0) * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]);
+    y += (dt / 6.0) * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]);
+    theta += (dt / 6.0) * (k1[2] + 2 * k2[2] + 2 * k3[2] + k4[2]);
+    // wrap theta to [-pi, pi]
     while (theta > M_PI) {
         theta -= 2 * M_PI;
     }
@@ -30,6 +45,12 @@ void MyFirstOrderUnicycle::propagate(Eigen::VectorXd &state, Eigen::VectorXd &co
     state[2] = theta;
 };
 void MySecondOrderUnicycle::propagate(Eigen::VectorXd &state, Eigen::VectorXd &control, double dt) {
+    if (control.size() != 2) {
+        // LOG("Error: Control input size is invalid.");
+        control = Eigen::VectorXd::Zero(2);
+    }
+
+    //LOG(control.size());
     // consts
     double r = 0.25;
     // unpack state
@@ -86,9 +107,7 @@ void MySecondOrderUnicycle::propagate(Eigen::VectorXd &state, Eigen::VectorXd &c
     state[2] += (dt / 6.0) * (k1[2] + 2 * k2[2] + 2 * k3[2] + k4[2]);
     state[3] += (dt / 6.0) * (k1[3] + 2 * k2[3] + 2 * k3[3] + k4[3]);
     state[4] += (dt / 6.0) * (k1[4] + 2 * k2[4] + 2 * k3[4] + k4[4]);
-};
-
-
+}
 amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::DynamicAgent &agent)
 {
     // set up variables
@@ -105,7 +124,8 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         goal[i] = (problem.q_goal[i].first + problem.q_goal[i].second) / 2;
     }
     Eigen::VectorXd state;
-    std::shared_ptr<amp::Graph<std::tuple<double, Eigen::VectorXd>>> graphPtr = std::make_shared<amp::Graph<std::tuple<double, Eigen::VectorXd>>>();
+    amp::Graph<std::tuple<double, Eigen::VectorXd>> graph;
+
     // create empty graph
     std::map<amp::Node, Eigen::VectorXd> nodes;
     // initialize node at start point
@@ -296,8 +316,8 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
             double cost = (next_state - nearest_state).norm();
             nodes[node_count] = next_state;
             // add node to map
-            graphPtr->connect(nearest_id, node_count, std::make_tuple(cost, control));
-            graphPtr->connect(node_count, nearest_id, std::make_tuple(cost, control)); // bidirectional
+            graph.connect(nearest_id, node_count, std::make_tuple(cost, control));
+            graph.connect(node_count, nearest_id, std::make_tuple(cost, control)); // bidirectional
             // check if we've hit goal and backtrack
             if (goalReached(next_state))
             {
@@ -305,7 +325,7 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
                 // backtrack through graph
                 while (current != 0) // while we have not reached root node
                 {
-                    auto outgoing_edges = graphPtr->outgoingEdges(current);
+                    auto outgoing_edges = graph.outgoingEdges(current);
                     if (outgoing_edges.empty())
                     {
                         std::cerr << "No outgoing edges for node " << current << "\n";
@@ -318,7 +338,7 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
                     // push back point, control and duration
                     pushWp(nodes[current], control, dt);
                     // get parents (with error checking)
-                    auto parents = graphPtr->parents(current);
+                    auto parents = graph.parents(current);
                     if (parents.empty())
                     {
                         std::cerr << "No parent node for node " << current << "\n";
