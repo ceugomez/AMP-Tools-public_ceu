@@ -1,18 +1,17 @@
 #pragma once
 #include "AMPCore.h"
-#include "hw9/MyKinoRRT.h"
+#include "../hw9/MyKinoRRT.h"
+#include "hw/HW9.h"
 
 
 struct benchmarkResult {
-    std::vector<double> cputime;
-    std::vector<double> pathlength;
-    double validSolns; 
-}
+    std::vector<std::vector<double>> cputime;
+    std::vector<std::vector<double>> pathlength;
+    std::vector<double> validSolns; 
+};
 
 class benchmark {
     public: 
-        benchmarkKinoRRT(const amp::KinodynamicProblem2D& problem);
+        static benchmarkResult benchmarkKinoRRT(const amp::KinodynamicProblem2D &problem, const std::tuple<int, std::vector<int>>& set);    // set = {n, u_samples}
     private:
-
-
-}
+};

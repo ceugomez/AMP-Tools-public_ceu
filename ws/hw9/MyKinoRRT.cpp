@@ -119,10 +119,6 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
 
     // initialize dynamic step size counter
     double dt = 0.3;      // default value for dt
-    double min_dt = 0.05; // minimum step size
-    double max_dt = 1.0;  // maximum step size
-    int success_count = 0;
-    int failure_count = 0;
     const int adjust_threshold = 5;
 
     // initial delT based on which problem it is
@@ -334,21 +330,6 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         return false;
     };
     // lambda to dynamically adjust step size
-    auto adjustStepSize = [&]()
-    {
-        if (success_count >= adjust_threshold && dt < max_dt)
-        {
-            dt *= 1.1; // Increase step size
-            dt = std::min(dt, max_dt);
-            success_count = 0; // Reset success count
-        }
-        else if (failure_count >= adjust_threshold && dt > min_dt)
-        {
-            dt *= 0.9; // Decrease step size
-            dt = std::max(dt, min_dt);
-            failure_count = 0; // Reset failure count
-        }
-    };
     // Runtime loop
     path.valid = false;
     while (iter < max_iter && !goal_reached)
@@ -366,10 +347,6 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
         // check collision in next_state and along path
         if (isPathFree(nearest_state, next_state))
         {
-            // adjust step size based on success
-            //success_count++;
-            //failure_count = 0;
-            //adjustStepSize();
             // determine the cost
             double cost = (next_state - nearest_state).norm();
             nodes[node_count] = next_state;
@@ -417,13 +394,6 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D &problem, amp::Dyn
             }
             node_count++;
             iter++;
-        }
-        else
-        {
-            // Failed path extension
-            // failure_count++;
-            // success_count = 0;
-            // adjustStepSize(); // Adjust step size
         }
     }
     // catch RRT failures and return random path

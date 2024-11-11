@@ -11,17 +11,17 @@
 class MyKinoRRT : public amp::KinodynamicRRT {
 public:
     // default constructor 
-    MyKinoRRT() : biasProb(0.05), controlIter(100) {}
+    MyKinoRRT() : biasProb(0.15), controlIter(100), max_iter(50000) {}
 
     // parameterized constructor
-    MyKinoRRT(double biasProb, int controlIter) 
-        : biasProb(biasProb), controlIter(controlIter) {}
-    virtual amp::KinoPath plan(const amp::KinodynamicProblem2D& problem, amp::DynamicAgent& agent) override;
+    MyKinoRRT(double biasProb, int controlIter, int max_iter) 
+        : biasProb(biasProb), controlIter(controlIter), max_iter(max_iter) {}
+    virtual amp::KinoPath plan(const amp::KinodynamicProblem2D &problem, amp::DynamicAgent &agent);
 
 private:
     double biasProb;
     int controlIter;
-    const int max_iter = 50000;
+    int max_iter;
 };
 
 
